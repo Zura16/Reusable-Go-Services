@@ -1,0 +1,220 @@
+package grpcserver
+
+import (
+	"context"
+	"net"
+	"testing"
+	"time"
+
+	"github.com/aalindkale/servicekit/auth"
+	"github.com/aalindkale/servicekit/config"
+	profilev1 "github.com/aalindkale/servicekit/proto/profile/v1"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
+)
+
+const bufSize = 1024 * 1024
+
+type mockValidator struct{}
+
+func (m *mockValidator) Validate(ctx context.Context, token string) (auth.Identity, error) {
+	if token == "valid-token" {
+		return auth.Identity{Subject: "user1", Roles: []string{"user"}}, nil
+	}
+	return auth.Identity{}, auth.ErrUnauthenticated
+}
+
+// setupTestServer creates a gRPC server using bufconn for testing.
+func setupTestServer(t *testing.T) (*grpc.ClientConn, *Server) {
+	lis := bufconn.Listen(bufSize)
+	logger := zap.NewNop()
+	
+	// mock validator
+	val := &mockValidator{}
+
+	cfg := config.Config{GRPCPort: 50051}
+	
+	srv, err := New(cfg, logger, val, nil, WithListener(lis))
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	profilev1.RegisterProfileServiceServer(srv.Server(), NewProfileServer())
+
+	go func() {
+		if err := srv.Serve(); err != nil {
+			// Serve returns an error when stopped
+		}
+	}()
+
+	bufDialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, "bufnet",
+		grpc.WithContextDialer(bufDialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+
+	t.Cleanup(func() {
+		conn.Close()
+		srv.GracefulStop()
+	})
+
+	return conn, srv
+}
+
+func TestGetProfile_Success(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	resp, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	if err != nil {
+		t.Fatalf("Expected success, got error: %v", err)
+	}
+
+	if resp.DisplayName != "Alice" {
+		t.Errorf("Expected display name Alice, got %s", resp.DisplayName)
+	}
+}
+
+func TestGetProfile_NotFound(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "unknown"})
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("Expected NotFound code, got %v", err)
+	}
+}
+
+func TestGetProfile_InvalidArgument(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: ""})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("Expected InvalidArgument code, got %v", err)
+	}
+}
+
+func TestAuthInterceptor_ValidToken(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+func TestAuthInterceptor_InvalidToken(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer invalid-token")
+	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	if status.Code(err) != codes.Unauthenticated {
+		t.Errorf("Expected Unauthenticated code, got %v", err)
+	}
+}
+
+func TestAuthInterceptor_MissingToken(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	_, err := client.GetProfile(context.Background(), &profilev1.GetProfileRequest{UserId: "user1"})
+	if status.Code(err) != codes.Unauthenticated {
+		t.Errorf("Expected Unauthenticated code for missing token, got %v", err)
+	}
+}
+
+func TestDeadlinePropagation(t *testing.T) {
+	t.Parallel()
+	conn, _ := setupTestServer(t)
+	client := profilev1.NewProfileServiceClient(conn)
+
+	// Since our handler checks for deadline exceeded directly based on ctx.Err(),
+	// we just pass a context that is already timed out or very short.
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Microsecond)
+	defer cancel()
+
+	// Need to wait slightly so it actually expires before reaching the handler
+	time.Sleep(2 * time.Microsecond)
+
+	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer valid-token")
+	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	if status.Code(err) != codes.DeadlineExceeded && status.Code(err) != codes.Canceled {
+		t.Errorf("Expected DeadlineExceeded or Canceled, got %v", status.Code(err))
+	}
+}
+
+// panicing handler just for testing recovery
+type panickingServer struct {
+	profilev1.UnimplementedProfileServiceServer
+}
+
+func (s *panickingServer) GetProfile(context.Context, *profilev1.GetProfileRequest) (*profilev1.GetProfileResponse, error) {
+	panic("something went wrong")
+}
+
+func TestRecoveryInterceptor(t *testing.T) {
+	t.Parallel()
+	
+	lis := bufconn.Listen(bufSize)
+	logger := zap.NewNop()
+	val := &mockValidator{}
+	
+	cfg := config.Config{GRPCPort: 50052}
+	srv, err := New(cfg, logger, val, nil, WithListener(lis))
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
+	}
+
+	profilev1.RegisterProfileServiceServer(srv.Server(), &panickingServer{})
+
+	go srv.Serve()
+
+	bufDialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+
+	conn, err := grpc.DialContext(context.Background(), "bufnet",
+		grpc.WithContextDialer(bufDialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	defer srv.GracefulStop()
+
+	client := profilev1.NewProfileServiceClient(conn)
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	_, err = client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	
+	if status.Code(err) != codes.Internal {
+		t.Errorf("Expected Internal error for panic, got %v", err)
+	}
+}
