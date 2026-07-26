@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/aalindkale/servicekit/proto/profile/v1;profilev1";
+
+// ProfileService provides profile lookup for authenticated users.
+service ProfileService {
+  // GetProfile retrieves a user profile by their unique identifier.
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+}
+
+// GetProfileRequest is the request message for GetProfile.
+message GetProfileRequest {
+  // user_id is the unique identifier for the user whose profile is requested.
+  string user_id = 1;
+}
+
+// GetProfileResponse is the response message for GetProfile.
+message GetProfileResponse {
+  // user_id is the unique identifier of the user.
+  string user_id = 1;
+  // display_name is the user's display name.
+  string display_name = 2;
+  // email is the user's email address.
+  string email = 3;
+}
