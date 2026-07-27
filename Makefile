@@ -20,7 +20,7 @@ test:
 # Build all packages and example
 build:
 	go build ./...
-	go build ./example/...
+	go build -o /dev/null ./example/main.go
 
 # View test coverage
 coverage: test
