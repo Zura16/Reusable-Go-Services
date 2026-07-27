@@ -1,3 +1,4 @@
+// Package grpcserver provides gRPC unary server interceptors for recovery, logging, metrics, and auth.
 package grpcserver
 
 import (

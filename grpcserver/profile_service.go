@@ -1,3 +1,4 @@
+// Package grpcserver provides a sample ProfileService gRPC implementation.
 package grpcserver
 
 import (

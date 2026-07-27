@@ -1,28 +1,13 @@
+version: "2"
+
 linters:
   enable:
     - govet
-    - errcheck
     - staticcheck
-    - gosimple
     - unused
     - ineffassign
-    - revive
-
-linters-settings:
-  revive:
-    rules:
-      - name: exported
-        arguments:
-          - checkPrivateReceivers
-      - name: blank-imports
-      - name: context-as-argument
-      - name: error-return
-      - name: error-strings
-      - name: increment-decrement
-      - name: var-naming
-      - name: package-comments
 
 issues:
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_grpc\\.pb\\.go$"

@@ -152,7 +152,7 @@ func ExampleServer() {
 
 	srv, _ := httpserver.New(cfg, logger, httpserver.WithMaxBodySize(2<<20))
 	srv.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello World")
+		_, _ = fmt.Fprint(w, "Hello World")
 	})
 
 	fmt.Println("Server created")

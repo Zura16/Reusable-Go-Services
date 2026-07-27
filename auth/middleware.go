@@ -1,3 +1,4 @@
+// Package auth provides HTTP middleware for bearer token validation and role-based authorization.
 package auth
 
 import (

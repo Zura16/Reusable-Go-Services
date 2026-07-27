@@ -39,7 +39,7 @@ func TestGet(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	}))
 	defer server.Close()
 
@@ -48,7 +48,7 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -70,7 +70,7 @@ func TestPost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -98,7 +98,7 @@ func TestRetryOnServerError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
@@ -128,7 +128,7 @@ func TestRetryOn429(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	elapsed := time.Since(start)
 
 	if resp.StatusCode != http.StatusOK {
@@ -153,7 +153,7 @@ func TestNoRetryOnClientError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", resp.StatusCode)
@@ -177,7 +177,7 @@ func TestNoRetryOnPOST(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if attempts != 1 {
 		t.Errorf("expected 1 attempt, got %d", attempts)
@@ -206,7 +206,7 @@ func TestRetryUnsafePOST(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if attempts != 2 {
 		t.Errorf("expected 2 attempts, got %d", attempts)
@@ -250,7 +250,7 @@ func TestExponentialBackoffAndMaxRetries(t *testing.T) {
 	retrier.MaxRetries = 2
 	client := New(WithRetrier(retrier))
 
-	client.Get(context.Background(), server.URL)
+	_, _ = client.Get(context.Background(), server.URL)
 	
 	if attempts != 3 {
 		t.Errorf("expected 3 attempts (1 initial + 2 retries), got %d", attempts)
@@ -283,7 +283,7 @@ func ExampleClient_Get() {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	
 	fmt.Printf("Status: %d\n", resp.StatusCode)
 }

@@ -202,7 +202,7 @@ func ExampleHTTPMiddleware() {
 	// Protected handler
 	protected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, _ := auth.IdentityFromContext(r.Context())
-		fmt.Fprintf(w, "Hello, %s", id.Subject)
+		_, _ = fmt.Fprintf(w, "Hello, %s", id.Subject)
 	})
 
 	// Wrap handler

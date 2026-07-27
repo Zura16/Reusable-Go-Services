@@ -1,3 +1,4 @@
+// Package grpcserver provides a gRPC server setup with unary interceptors and service registration.
 package grpcserver
 
 import (

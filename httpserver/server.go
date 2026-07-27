@@ -1,3 +1,4 @@
+// Package httpserver provides an HTTP server with health checks, readiness probes, metrics, and middleware.
 package httpserver
 
 import (
@@ -68,17 +69,17 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 	// Register built-in health routes
 	s.mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	s.mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 		if s.readyCheck != nil && !s.readyCheck() {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("Unavailable"))
+			_, _ = w.Write([]byte("Unavailable"))
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Ready"))
+		_, _ = w.Write([]byte("Ready"))
 	})
 
 	// Setup metrics route

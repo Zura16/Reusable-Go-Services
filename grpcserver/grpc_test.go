@@ -47,9 +47,7 @@ func setupTestServer(t *testing.T) (*grpc.ClientConn, *Server) {
 	profilev1.RegisterProfileServiceServer(srv.Server(), NewProfileServer())
 
 	go func() {
-		if err := srv.Serve(); err != nil {
-			// Serve returns an error when stopped
-		}
+		_ = srv.Serve()
 	}()
 
 	bufDialer := func(context.Context, string) (net.Conn, error) {
@@ -68,7 +66,7 @@ func setupTestServer(t *testing.T) (*grpc.ClientConn, *Server) {
 	}
 
 	t.Cleanup(func() {
-		conn.Close()
+		_ = conn.Close()
 		srv.GracefulStop()
 	})
 
@@ -194,7 +192,7 @@ func TestRecoveryInterceptor(t *testing.T) {
 
 	profilev1.RegisterProfileServiceServer(srv.Server(), &panickingServer{})
 
-	go srv.Serve()
+	go func() { _ = srv.Serve() }()
 
 	bufDialer := func(context.Context, string) (net.Conn, error) {
 		return lis.Dial()
@@ -207,7 +205,7 @@ func TestRecoveryInterceptor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	defer srv.GracefulStop()
 
 	client := profilev1.NewProfileServiceClient(conn)

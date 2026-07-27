@@ -1,3 +1,4 @@
+// Package httpserver provides HTTP middleware functions for recovery, request IDs, logging, metrics, and body limits.
 package httpserver
 
 import (

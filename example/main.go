@@ -54,7 +54,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("creating logger: %w", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	logger.Info("configuration loaded", zap.Stringer("config", cfg))
 
@@ -117,7 +117,7 @@ func run() error {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"message": "Hello from ServiceKit!",
 				"user":    identity.Subject,
 				"roles":   identity.Roles,
@@ -133,10 +133,10 @@ func run() error {
 			http.Error(w, fmt.Sprintf("client request failed: %v", err), http.StatusBadGateway)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"message":       "HTTP client round-trip successful",
 			"upstream_code": resp.StatusCode,
 		})

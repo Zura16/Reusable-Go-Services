@@ -48,7 +48,7 @@ func (r *Retrier) Do(ctx context.Context, fn func() (*http.Response, error), met
 
 		// Close body if we're retrying and response is not nil
 		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		delay := r.calculateDelay(attempt, resp)
@@ -80,10 +80,7 @@ func (r *Retrier) isRetryable(resp *http.Response, err error, method string) boo
 	if err != nil {
 		// Network errors (connection refused, DNS, timeout from net package)
 		var netErr net.Error
-		if errors.As(err, &netErr) {
-			return true
-		}
-		return false
+		return errors.As(err, &netErr)
 	}
 
 	if resp != nil {

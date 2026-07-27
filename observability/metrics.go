@@ -1,3 +1,4 @@
+// Package observability provides structured logging, Prometheus metrics, and OpenTelemetry tracing.
 package observability
 
 import (
