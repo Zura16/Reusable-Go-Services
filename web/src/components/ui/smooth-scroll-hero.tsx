@@ -76,7 +76,7 @@ const SmoothScrollHeroBackground: React.FC<
 		>
 			{/* Mobile background */}
 			<motion.div
-				className="absolute inset-0 md:hidden opacity-90"
+				className="absolute inset-0 md:hidden opacity-100"
 				style={{
 					backgroundImage: `url(${mobileImage})`,
 					backgroundSize,
@@ -86,7 +86,7 @@ const SmoothScrollHeroBackground: React.FC<
 			/>
 			{/* Desktop background */}
 			<motion.div
-				className="absolute inset-0 hidden md:block opacity-90"
+				className="absolute inset-0 hidden md:block opacity-100"
 				style={{
 					backgroundImage: `url(${desktopImage})`,
 					backgroundSize,
@@ -95,8 +95,9 @@ const SmoothScrollHeroBackground: React.FC<
 				}}
 			/>
 
-			{/* Overlay text / Hero content */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 p-6 text-center z-10">
+			{/* Overlay text / Hero content with lighter overlay */}
+			<div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black/40 via-black/25 to-black/50 p-6 text-center z-10">
+
 				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-slate-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
 					Go Service Foundation
 				</span>
