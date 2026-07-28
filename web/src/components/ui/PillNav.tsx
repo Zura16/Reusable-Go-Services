@@ -226,19 +226,17 @@ export default function PillNav({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        <a
-          className="pill-logo flex items-center justify-center font-bold text-white text-xs tracking-tighter"
-          href={items?.[0]?.href || '#'}
-          aria-label="Home"
-          onMouseEnter={handleLogoEnter}
-          ref={logoRef}
-        >
-          {logo ? (
+        {logo && (
+          <a
+            className="pill-logo flex items-center justify-center"
+            href={items?.[0]?.href || '#'}
+            aria-label="Home"
+            onMouseEnter={handleLogoEnter}
+            ref={logoRef}
+          >
             <img src={logo} alt={logoAlt} ref={logoImgRef} />
-          ) : (
-            <span className="font-extrabold font-mono text-sm text-white">SK</span>
-          )}
-        </a>
+          </a>
+        )}
 
         <div className="pill-nav-items desktop-only" ref={navItemsRef}>
           <ul className="pill-list" role="menubar">
