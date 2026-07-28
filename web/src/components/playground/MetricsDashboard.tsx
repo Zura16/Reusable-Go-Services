@@ -18,23 +18,26 @@ export const MetricsDashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl transition-all duration-300 p-6 md:p-8">
+    <div
+      style={{ backgroundColor: "#DCDCDC" }}
+      className="relative rounded-3xl overflow-hidden text-slate-900 border border-slate-300 shadow-2xl transition-all duration-300 p-6 md:p-8"
+    >
       {/* Panel Header */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-300">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900">
+          <div className="p-3 rounded-2xl bg-slate-200 border border-slate-400 text-slate-900">
             <Activity className="w-5 h-5 text-slate-900" />
           </div>
           <div>
             <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
               Prometheus Metrics & OpenTelemetry Spans
             </h3>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
+            <p className="text-xs text-slate-700 font-medium mt-0.5">
               Real-Time HTTP/gRPC Collector Metrics & OTLP Traces
             </p>
           </div>
         </div>
-        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-300 tracking-wide uppercase">
+        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-900 border border-slate-400 tracking-wide uppercase">
           Live Telemetry
         </span>
       </div>
@@ -42,29 +45,29 @@ export const MetricsDashboard: React.FC = () => {
       {/* Metrics Body */}
       <div className="space-y-6 w-full max-w-full overflow-hidden">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-center overflow-hidden">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1 truncate">
+          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400 text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1 truncate">
               http_requests_total
             </span>
             <span className="text-2xl md:text-3xl font-extrabold text-slate-900 font-mono block truncate">{httpCount}</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-center overflow-hidden">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1 truncate">
+          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400 text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1 truncate">
               grpc_requests_total
             </span>
             <span className="text-2xl md:text-3xl font-extrabold text-slate-900 font-mono block truncate">{grpcCount}</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-center overflow-hidden">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1 truncate">
+          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400 text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1 truncate">
               http_request_duration
             </span>
             <span className="text-2xl md:text-3xl font-extrabold text-slate-900 font-mono block truncate">{latencyMs} ms</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-center overflow-hidden">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 block mb-1 truncate">
+          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400 text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block mb-1 truncate">
               OTel Active Spans
             </span>
             <span className="text-2xl md:text-3xl font-extrabold text-slate-900 font-mono block truncate">{activeSpans}</span>
@@ -72,7 +75,7 @@ export const MetricsDashboard: React.FC = () => {
         </div>
 
         {/* Histogram Buckets Container */}
-        <div className="p-6 rounded-3xl bg-slate-100 border border-slate-300 space-y-4 w-full overflow-hidden">
+        <div className="p-6 rounded-3xl bg-slate-200 border border-slate-400 space-y-4 w-full overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-900">
             <span className="truncate">HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
             <span className="text-slate-900 flex items-center gap-1.5 font-bold shrink-0">
@@ -88,7 +91,7 @@ export const MetricsDashboard: React.FC = () => {
               { bucket: "le=1.00", count: httpCount, pct: "100%" },
             ].map((b) => (
               <div key={b.bucket} className="space-y-1 w-full">
-                <div className="flex justify-between text-[11px] text-slate-800 font-mono font-semibold">
+                <div className="flex justify-between text-[11px] text-slate-900 font-mono font-bold">
                   <span>Bucket {b.bucket}</span>
                   <span>{b.count} reqs ({b.pct})</span>
                 </div>
