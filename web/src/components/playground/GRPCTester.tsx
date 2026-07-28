@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Server, UserCheck, AlertCircle, Clock, Zap } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
+import { LiquidGlassButton } from "@/components/ui/glass-button";
 
 export const GRPCTester: React.FC = () => {
   const [userId, setUserId] = useState("user1");
@@ -95,7 +96,7 @@ export const GRPCTester: React.FC = () => {
     <LiquidGlassPanel
       title="gRPC ProfileService Inspector"
       subtitle="Bufconn In-Process RPC Calls & Status Code Mapping"
-      icon={<Server className="w-5 h-5" />}
+      icon={<Server className="w-5 h-5 text-cyan-300" />}
       badge="Protobuf v1 / gRPC Wire"
       glowColor="cyan"
     >
@@ -115,28 +116,32 @@ export const GRPCTester: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-white/15 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition font-mono"
               />
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2.5">
               <button
+                type="button"
                 onClick={() => setUserId("user1")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-slate-200"
               >
                 user1
               </button>
               <button
+                type="button"
                 onClick={() => setUserId("user2")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-slate-200"
               >
                 user2
               </button>
               <button
+                type="button"
                 onClick={() => setUserId("unknown_999")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-slate-200"
               >
                 unknown_id
               </button>
               <button
+                type="button"
                 onClick={() => setUserId("")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-amber-400 border border-amber-500/20"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-amber-300 border-amber-500/30"
               >
                 empty
               </button>
@@ -171,13 +176,14 @@ export const GRPCTester: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <LiquidGlassButton
           onClick={handleGetProfile}
-          className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2"
+          glowColor="cyan"
+          icon={<Zap className="w-4 h-4 text-cyan-300" />}
+          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
         >
-          <Zap className="w-4 h-4" />
           Invoke RPC ProfileService.GetProfile()
-        </button>
+        </LiquidGlassButton>
 
         {lastResult && (
           <div className="p-5 rounded-2xl bg-slate-900/80 border border-white/15 text-slate-100 font-mono text-xs space-y-3 animate-fadeIn">

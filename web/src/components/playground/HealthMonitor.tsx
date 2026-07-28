@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { HeartPulse, CheckCircle2, AlertOctagon, RefreshCcw } from "lucide-react";
+import { HeartPulse, RefreshCcw } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
+import { LiquidGlassButton } from "@/components/ui/glass-button";
 
 export const HealthMonitor: React.FC = () => {
   const [isReady, setIsReady] = useState(true);
-  const [healthStatus, setHealthStatus] = useState({ code: 200, status: "OK", text: "OK" });
+  const [healthStatus] = useState({ code: 200, status: "OK", text: "OK" });
   const [readyStatus, setReadyStatus] = useState({ code: 200, status: "OK", text: "Ready" });
 
   const toggleReadiness = () => {
@@ -21,7 +22,7 @@ export const HealthMonitor: React.FC = () => {
     <LiquidGlassPanel
       title="Health & Readiness Probes"
       subtitle="K8s Probe Endpoints: /healthz (Always 200) & /readyz (Dynamic Check)"
-      icon={<HeartPulse className="w-5 h-5" />}
+      icon={<HeartPulse className="w-5 h-5 text-emerald-300" />}
       badge="K8s Ready"
       glowColor="emerald"
     >
@@ -76,13 +77,14 @@ export const HealthMonitor: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <LiquidGlassButton
           onClick={toggleReadiness}
-          className="w-full py-3 rounded-xl font-semibold text-white bg-slate-900/80 hover:bg-slate-800 border border-white/20 shadow-lg transition flex items-center justify-center gap-2"
+          glowColor={isReady ? "emerald" : "amber"}
+          icon={<RefreshCcw className="w-4 h-4 text-emerald-300" />}
+          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
         >
-          <RefreshCcw className="w-4 h-4 text-emerald-400" />
           Toggle Dynamic readyCheck() State (Currently {isReady ? "READY" : "UNAVAILABLE"})
-        </button>
+        </LiquidGlassButton>
       </div>
     </LiquidGlassPanel>
   );

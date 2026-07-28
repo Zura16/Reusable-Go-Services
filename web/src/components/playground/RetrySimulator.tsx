@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { RefreshCw, Play, ShieldAlert, Check, Cpu } from "lucide-react";
+import { RefreshCw, Play, ShieldAlert, Check } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
+import { LiquidGlassButton } from "@/components/ui/glass-button";
 
 export const RetrySimulator: React.FC = () => {
   const [maxRetries, setMaxRetries] = useState(3);
@@ -19,7 +20,6 @@ export const RetrySimulator: React.FC = () => {
     setRetryLogs([]);
     const logs: { attempt: number; delayMs: number; status: string; isRetryable: boolean }[] = [];
 
-    // Idempotency check logic from httpclient/retry.go
     const isIdempotent = ["GET", "HEAD", "PUT", "DELETE", "OPTIONS"].includes(httpMethod);
     const allowRetry = isIdempotent || retryUnsafe;
 
@@ -30,9 +30,8 @@ export const RetrySimulator: React.FC = () => {
 
       if (simulate429 && attempt === 0) {
         status = "429 Too Many Requests (Retry-After: 1s)";
-        delayMs = 1000; // Retry-After header delay override
+        delayMs = 1000;
       } else if (attempt > 0) {
-        // Backoff = min(Base * 2^attempt, MaxDelay)
         const exponential = baseDelayMs * Math.pow(2, attempt - 1);
         const jitterRange = exponential * (jitterPercent / 100);
         const randomJitter = (Math.random() * 2 - 1) * jitterRange;
@@ -51,7 +50,7 @@ export const RetrySimulator: React.FC = () => {
       if (!allowRetry) break;
 
       if (delayMs > 0) {
-        await new Promise((res) => setTimeout(res, Math.min(delayMs, 400))); // Accelerated for UI demo
+        await new Promise((res) => setTimeout(res, Math.min(delayMs, 400)));
       }
     }
 
@@ -62,7 +61,7 @@ export const RetrySimulator: React.FC = () => {
     <LiquidGlassPanel
       title="HTTP Client Retry & Jitter Simulator"
       subtitle="Exponential Backoff, Idempotency Guard, and 429 Retry-After Engine"
-      icon={<RefreshCw className="w-5 h-5" />}
+      icon={<RefreshCw className="w-5 h-5 text-emerald-300" />}
       badge="Resilience Core"
       glowColor="emerald"
     >
@@ -120,21 +119,23 @@ export const RetrySimulator: React.FC = () => {
             </label>
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => setHttpMethod("GET")}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider border transition ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider liquid-glass-btn ${
                   httpMethod === "GET"
-                    ? "bg-emerald-500/30 border-emerald-400/50 text-emerald-200"
-                    : "bg-slate-900/40 border-white/10 text-slate-400"
+                    ? "border-emerald-400/60 text-emerald-200 bg-emerald-500/20 shadow-emerald-500/30"
+                    : "text-slate-400"
                 }`}
               >
                 GET (Idempotent)
               </button>
               <button
+                type="button"
                 onClick={() => setHttpMethod("POST")}
-                className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider border transition ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider liquid-glass-btn ${
                   httpMethod === "POST"
-                    ? "bg-amber-500/30 border-amber-400/50 text-amber-200"
-                    : "bg-slate-900/40 border-white/10 text-slate-400"
+                    ? "border-amber-400/60 text-amber-200 bg-amber-500/20 shadow-amber-500/30"
+                    : "text-slate-400"
                 }`}
               >
                 POST (Unsafe)
@@ -171,14 +172,15 @@ export const RetrySimulator: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <LiquidGlassButton
           onClick={runSimulation}
           disabled={isRunning}
-          className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 disabled:opacity-50"
+          glowColor="emerald"
+          icon={isRunning ? <RefreshCw className="w-4 h-4 text-emerald-300 animate-spin" /> : <Play className="w-4 h-4 text-emerald-300" />}
+          className="w-full py-3.5 text-sm font-semibold rounded-2xl disabled:opacity-50"
         >
-          {isRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           Execute Request with Retrier
-        </button>
+        </LiquidGlassButton>
 
         {retryLogs.length > 0 && (
           <div className="space-y-2 font-mono text-xs animate-fadeIn">

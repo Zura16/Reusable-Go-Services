@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Key, ShieldCheck, ShieldAlert, Lock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Key, ShieldCheck, Lock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
+import { LiquidGlassButton } from "@/components/ui/glass-button";
 
 export const AuthTester: React.FC = () => {
   const [token, setToken] = useState("secret-auth-token");
@@ -15,7 +16,6 @@ export const AuthTester: React.FC = () => {
   } | null>(null);
 
   const handleTestAuth = () => {
-    // Simulate ServiceKit Auth Middleware & StaticValidator execution
     const validTokens: Record<string, { subject: string; roles: string[] }> = {
       "secret-auth-token": { subject: "alice@example.com", roles: ["user", "admin"] },
       "dev-bearer-token": { subject: "bob@dev.local", roles: ["user"] },
@@ -69,7 +69,7 @@ export const AuthTester: React.FC = () => {
     <LiquidGlassPanel
       title="Auth & Authorization Validator"
       subtitle="Test Constant-Time Bearer Token Validation & Role Enforcement"
-      icon={<Lock className="w-5 h-5" />}
+      icon={<Lock className="w-5 h-5 text-purple-300" />}
       badge="Crypto/Subtle Safe"
       glowColor="purple"
     >
@@ -89,22 +89,25 @@ export const AuthTester: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-white/15 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-mono"
               />
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex flex-wrap gap-2 mt-2.5">
               <button
+                type="button"
                 onClick={() => setToken("secret-auth-token")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-slate-200"
               >
                 Preset: Admin Token
               </button>
               <button
+                type="button"
                 onClick={() => setToken("dev-bearer-token")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-slate-200"
               >
                 Preset: User Token
               </button>
               <button
+                type="button"
                 onClick={() => setToken("invalid-token-123")}
-                className="text-[11px] px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 text-[11px] text-red-400 border border-red-500/20 transition"
+                className="text-[11px] px-3 py-1 rounded-xl liquid-glass-btn text-red-300 border-red-500/30"
               >
                 Preset: Invalid Token
               </button>
@@ -119,11 +122,12 @@ export const AuthTester: React.FC = () => {
               {(["none", "user", "admin"] as const).map((r) => (
                 <button
                   key={r}
+                  type="button"
                   onClick={() => setRoleRequirement(r)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider border transition-all ${
+                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold uppercase tracking-wider liquid-glass-btn ${
                     roleRequirement === r
-                      ? "bg-purple-500/30 border-purple-400/50 text-purple-200 shadow-lg shadow-purple-500/20"
-                      : "bg-slate-900/40 border-white/10 text-slate-400 hover:bg-white/5"
+                      ? "border-purple-400/60 text-purple-200 bg-purple-500/20 shadow-purple-500/30"
+                      : "text-slate-400"
                   }`}
                 >
                   {r === "none" ? "None" : r}
@@ -133,13 +137,14 @@ export const AuthTester: React.FC = () => {
           </div>
         </div>
 
-        <button
+        <LiquidGlassButton
           onClick={handleTestAuth}
-          className="w-full py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2"
+          glowColor="purple"
+          icon={<ShieldCheck className="w-4 h-4 text-purple-300" />}
+          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
         >
-          <ShieldCheck className="w-4 h-4" />
           Test Request Authentication & Role
-        </button>
+        </LiquidGlassButton>
 
         {lastResult && (
           <div
