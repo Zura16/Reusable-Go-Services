@@ -25,7 +25,7 @@ export const MetricsDashboard: React.FC = () => {
       glowColor="140 100 50"
       borderRadius={24}
       glowRadius={40}
-      glowIntensity={1.4}
+      glowIntensity={1.5}
       colors={['#22c55e', '#10b981', '#34d399']}
     >
       <div
@@ -33,70 +33,71 @@ export const MetricsDashboard: React.FC = () => {
           backgroundImage: `url(${matrixBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
         className="relative rounded-3xl overflow-hidden text-white transition-all duration-300 p-6 md:p-8"
       >
-        {/* Dark High-Contrast Translucent Backdrop Overlay */}
-        <div className="absolute inset-0 bg-black/82 backdrop-blur-md z-0" />
+        {/* Semi-transparent dark overlay allowing matrix text details to shine through */}
+        <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] z-0" />
 
         {/* Content */}
         <div className="relative z-10 space-y-6 w-full max-w-full overflow-hidden">
           {/* Panel Header */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-emerald-500/25">
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-black/70 border border-emerald-500/30 text-emerald-400">
+              <div className="p-3 rounded-2xl bg-black/60 border border-white/25 text-emerald-400">
                 <Activity className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-xl font-extrabold text-white tracking-tight">
+                <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-md">
                   Prometheus Metrics & OpenTelemetry Spans
                 </h3>
-                <p className="text-xs text-emerald-400 font-mono font-medium mt-0.5">
+                <p className="text-xs text-emerald-300 font-mono font-semibold mt-0.5 drop-shadow">
                   Real-Time HTTP/gRPC Collector Metrics & OTLP Traces
                 </p>
               </div>
             </div>
-            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 tracking-wide uppercase">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/70 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
               Live Telemetry
             </span>
           </div>
 
           {/* Metrics Body */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-            <div className="p-4 rounded-2xl bg-black/75 border border-emerald-500/30 text-center overflow-hidden">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate font-mono">
+            <div className="p-4 rounded-2xl bg-black/65 border border-white/30 text-center overflow-hidden">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 block mb-1 truncate font-mono drop-shadow">
                 http_requests_total
               </span>
-              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate">{httpCount}</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate drop-shadow">{httpCount}</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/75 border border-emerald-500/30 text-center overflow-hidden">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate font-mono">
+            <div className="p-4 rounded-2xl bg-black/65 border border-white/30 text-center overflow-hidden">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 block mb-1 truncate font-mono drop-shadow">
                 grpc_requests_total
               </span>
-              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate">{grpcCount}</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate drop-shadow">{grpcCount}</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/75 border border-emerald-500/30 text-center overflow-hidden">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate font-mono">
+            <div className="p-4 rounded-2xl bg-black/65 border border-white/30 text-center overflow-hidden">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 block mb-1 truncate font-mono drop-shadow">
                 http_request_duration
               </span>
-              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate">{latencyMs} ms</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate drop-shadow">{latencyMs} ms</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-black/75 border border-emerald-500/30 text-center overflow-hidden">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate font-mono">
+            <div className="p-4 rounded-2xl bg-black/65 border border-white/30 text-center overflow-hidden">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 block mb-1 truncate font-mono drop-shadow">
                 OTel Active Spans
               </span>
-              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate">{activeSpans}</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono block truncate drop-shadow">{activeSpans}</span>
             </div>
           </div>
 
           {/* Histogram Buckets Container */}
-          <div className="p-6 rounded-3xl bg-black/75 border border-emerald-500/30 space-y-4 w-full overflow-hidden">
+          <div className="p-6 rounded-3xl bg-black/65 border border-white/30 space-y-4 w-full overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white">
-              <span className="truncate font-mono">HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
-              <span className="text-emerald-400 flex items-center gap-1.5 font-bold shrink-0 font-mono">
+              <span className="truncate font-mono drop-shadow">HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
+              <span className="text-emerald-400 flex items-center gap-1.5 font-bold shrink-0 font-mono drop-shadow">
                 <Radio className="w-4 h-4 text-emerald-400 animate-pulse" /> Live Promhttp Stream
               </span>
             </div>
@@ -113,7 +114,7 @@ export const MetricsDashboard: React.FC = () => {
                     <span className="text-emerald-300">Bucket {b.bucket}</span>
                     <span>{b.count} reqs ({b.pct})</span>
                   </div>
-                  <div className="w-full h-2.5 rounded-full bg-black/80 border border-emerald-500/20 overflow-hidden">
+                  <div className="w-full h-2.5 rounded-full bg-black/80 border border-white/20 overflow-hidden">
                     <div
                       className="h-full bg-emerald-400 transition-all duration-500 shadow-md shadow-emerald-500/50"
                       style={{ width: b.pct }}
