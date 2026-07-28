@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react";
-import { useState, useEffect } from "react";
 
 import {
 	motion,
@@ -37,29 +36,16 @@ const SmoothScrollHeroBackground: React.FC<
 	finalClipPercentage,
 }) => {
 	const { scrollY } = useScroll();
-	const [docScrollMax, setDocScrollMax] = useState(scrollHeight + 1000);
 
-	useEffect(() => {
-		const updateDocMax = () => {
-			const max = document.documentElement.scrollHeight - window.innerHeight;
-			if (max > 500) {
-				setDocScrollMax(max);
-			}
-		};
-		updateDocMax();
-		window.addEventListener("resize", updateDocMax);
-		return () => window.removeEventListener("resize", updateDocMax);
-	}, []);
-
-	// Expand continuously all the way down to the bottom of the page
+	// Expands fully (0% to 100% full screen) over scrollHeight before stopping
 	const clipStart = useTransform(
 		scrollY,
-		[0, docScrollMax],
+		[0, scrollHeight],
 		[initialClipPercentage, 0],
 	);
 	const clipEnd = useTransform(
 		scrollY,
-		[0, docScrollMax],
+		[0, scrollHeight],
 		[finalClipPercentage, 100],
 	);
 
@@ -67,7 +53,7 @@ const SmoothScrollHeroBackground: React.FC<
 
 	const backgroundSize = useTransform(
 		scrollY,
-		[0, docScrollMax],
+		[0, scrollHeight],
 		["170%", "100%"],
 	);
 
@@ -78,7 +64,7 @@ const SmoothScrollHeroBackground: React.FC<
 
 	return (
 		<motion.div
-			className="sticky top-0 h-screen w-full bg-slate-950/30 overflow-hidden shadow-2xl"
+			className="sticky top-0 h-screen w-full bg-slate-950/40 overflow-hidden shadow-2xl"
 			style={{
 				clipPath,
 				willChange: "transform, opacity",
@@ -106,14 +92,14 @@ const SmoothScrollHeroBackground: React.FC<
 			/>
 
 			{/* Overlay text / Hero content */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-6 text-center z-10">
-				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-indigo-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
+			<div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-black via-black/50 to-transparent p-6 text-center z-10">
+				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-slate-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
 					⚡ Go Service Foundation
 				</span>
 				<h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-4xl drop-shadow-2xl">
 					Observable, Secure & Production-Ready Go Microservices
 				</h1>
-				<p className="text-lg md:text-xl text-slate-200 max-w-2xl font-light mb-8 leading-relaxed drop-shadow-md">
+				<p className="text-lg md:text-xl text-slate-300 max-w-2xl font-light mb-8 leading-relaxed drop-shadow-md">
 					Typed config, gRPC ProfileService, Auth validator, OpenTelemetry tracing, Prometheus metrics, and context-aware HTTP retries.
 				</p>
 
@@ -122,7 +108,7 @@ const SmoothScrollHeroBackground: React.FC<
 						label="Explore Live Playground"
 						width={210}
 						onClick={scrollToPlayground}
-						icon={<Compass size={16} className="text-indigo-300" />}
+						icon={<Compass size={16} className="text-slate-200" />}
 					/>
 					<a
 						href="https://github.com/Zura16/Reusable-Go-Services"
@@ -132,7 +118,7 @@ const SmoothScrollHeroBackground: React.FC<
 						<LiquidMetalButton
 							label="View GitHub Repo"
 							width={190}
-							icon={<Code2 size={16} className="text-purple-300" />}
+							icon={<Code2 size={16} className="text-slate-300" />}
 						/>
 					</a>
 				</div>
@@ -142,7 +128,7 @@ const SmoothScrollHeroBackground: React.FC<
 };
 
 const SmoothScrollHero: React.FC<iISmoothScrollHeroProps> = ({
-	scrollHeight = 1500,
+	scrollHeight = 1400,
 	desktopImage = "https://images.unsplash.com/photo-1511884642898-4c92249e20b6",
 	mobileImage = "https://images.unsplash.com/photo-1511207538754-e8555f2bc187?q=80&w=2412&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
 	initialClipPercentage = 25,
