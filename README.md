@@ -1,16 +1,17 @@
-# ServiceKit
+# ServiceKit 🚀
 
-[![CI](https://github.com/aalindkale/servicekit/actions/workflows/ci.yml/badge.svg)](https://github.com/aalindkale/servicekit/actions/workflows/ci.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/aalindkale/servicekit.svg)](https://pkg.go.dev/github.com/aalindkale/servicekit)
-[![Go Report Card](https://goreportcard.com/badge/github.com/aalindkale/servicekit)](https://goreportcard.com/report/github.com/aalindkale/servicekit)
+[![CI](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml/badge.svg)](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml)
+[![GitHub Pages Deploy](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/deploy.yml/badge.svg)](https://zura16.github.io/Reusable-Go-Services/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Zura16/Reusable-Go-Services.svg)](https://pkg.go.dev/github.com/Zura16/Reusable-Go-Services)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Zura16/Reusable-Go-Services)](https://goreportcard.com/report/github.com/Zura16/Reusable-Go-Services)
 
-A reusable Go package that lets you start a secure, observable HTTP or gRPC service with sensible defaults.
+A production-grade, reusable Go foundation for building secure, observable, and high-performance HTTP and gRPC microservices with sensible defaults.
 
-ServiceKit provides typed configuration, HTTP and gRPC server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client — all behind a small, composable API.
+ServiceKit provides typed configuration, HTTP and gRPC server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client with exponential backoff — all behind a small, composable API.
 
+🌐 **Live Interactive Playground**: [https://zura16.github.io/Reusable-Go-Services/](https://zura16.github.io/Reusable-Go-Services/)
 
 <img width="1256" height="781" alt="Screenshot 2026-07-28 at 3 10 44 PM" src="https://github.com/user-attachments/assets/7475ab2a-80b5-42c2-b69e-9ed7eed7affb" />
-
 
 ---
 
@@ -39,7 +40,6 @@ make generate
 
 <img width="1251" height="776" alt="Screenshot 2026-07-28 at 3 10 59 PM" src="https://github.com/user-attachments/assets/cb956f67-e064-439d-9b0a-58d06c7b5b34" />
 
-
 Set environment variables (all optional — sensible defaults are provided):
 
 ```bash
@@ -57,41 +57,42 @@ export SERVICEKIT_AUTH_TOKEN=my-secret   # Bearer token for authentication
 package main
 
 import (
-    "log"
-    "net/http"
+	"log"
+	"net/http"
 
-    "github.com/aalindkale/servicekit/config"
-    "github.com/aalindkale/servicekit/httpserver"
-    "github.com/aalindkale/servicekit/observability"
+	"github.com/aalindkale/servicekit/config"
+	"github.com/aalindkale/servicekit/httpserver"
+	"github.com/aalindkale/servicekit/observability"
+	"go.uber.org/zap"
 )
 
 func main() {
-    // Load and validate configuration
-    cfg, err := config.Load()
-    if err != nil {
-        log.Fatal(err)
-    }
+	// Load and validate configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // Initialize structured logger
-    logger, err := observability.NewLogger(cfg.LogLevel)
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer logger.Sync()
+	// Initialize structured logger
+	logger, err := observability.NewLogger(cfg.LogLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logger.Sync()
 
-    // Create and start HTTP server with defaults
-    srv, err := httpserver.New(cfg, logger)
-    if err != nil {
-        log.Fatal(err)
-    }
+	// Create and start HTTP server with defaults
+	srv, err := httpserver.New(cfg, logger)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    srv.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello, ServiceKit!"))
-    })
+	srv.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello, ServiceKit!"))
+	})
 
-    if err := srv.ListenAndServe(); err != nil {
-        logger.Fatal("server stopped", zap.Error(err))
-    }
+	if err := srv.ListenAndServe(); err != nil {
+		logger.Fatal("server stopped", zap.Error(err))
+	}
 }
 ```
 
@@ -138,7 +139,6 @@ graph TB
 
 <img width="1244" height="733" alt="Screenshot 2026-07-28 at 3 11 10 PM" src="https://github.com/user-attachments/assets/c24437bd-7092-4fbb-a582-3581bdf621e5" />
 
-
 ### `config` — Typed Configuration
 
 Loads from environment variables with safe defaults and validation. Secret values (like `AuthToken`) are redacted in `String()` output.
@@ -183,14 +183,17 @@ defer observability.ShutdownTracer(context.Background(), tp)
 
 ### `auth` — Authentication & Authorization
 
-Token-based authentication with a clean interface:
+Constant-time token-based authentication with a clean interface:
 
 ```go
 // Use StaticValidator for simple token validation
 validator := auth.NewStaticValidator("my-secret-token")
 
 // Or MockValidator for testing
-validator := auth.NewMockValidator(auth.Identity{Subject: "user-1", Roles: []string{"admin"}}, nil)
+validator := &auth.MockValidator{
+    Identity: auth.Identity{Subject: "user-1", Roles: []string{"admin"}},
+    Err:      nil,
+}
 
 // HTTP middleware
 mux.Handle("/api/", auth.HTTPMiddleware(validator)(apiHandler))
@@ -268,37 +271,52 @@ SERVICEKIT_AUTH_TOKEN=secret go run ./example/
 
 ---
 
+## Benchmarks & Performance
+
+Run performance microbenchmarks and memory allocation metrics:
+
+```bash
+make bench
+```
+
+**Results (Apple M2)**:
+- `auth.StaticValidator`: **7.39 ns/op** with **0 allocations (0 B/op, 0 allocs/op)** — constant-time zero-allocation security validation!
+- `auth.HTTPMiddleware`: **148 ns/op** (> 6.7M requests/sec per CPU core).
+
+---
+
 ## Testing
 
 ```bash
 # Run all tests with race detector
-go test -race -count=1 ./...
+make test
 
-# With coverage
-go test -race -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out
+# View code coverage
+make coverage
+
+# Run benchmarks
+make bench
 ```
 
 ---
 
-## Development
+## Development & CI
 
 ### Prerequisites
 
 - Go 1.22+
 
-### Linting
+### Linting & Build
 
 ```bash
-golangci-lint run ./...
+make lint
+make build
 ```
 
-### CI
+### CI / CD Workflows
 
-The [CI pipeline](.github/workflows/ci.yml) runs on every push and PR:
-- Lint (`golangci-lint`)
-- Test (`go test -race -coverprofile`)
-- Build (`go build`)
+- [CI Pipeline](.github/workflows/ci.yml) — Runs linting, race-detector unit tests, and compilation on every commit.
+- [GitHub Pages Deployment](.github/workflows/deploy.yml) — Automated build & deployment of the React interactive playground to GitHub Pages.
 
 ---
 
