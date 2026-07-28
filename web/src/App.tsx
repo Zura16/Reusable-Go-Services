@@ -62,7 +62,7 @@ export function App() {
           </div>
         </div>
 
-        {/* Featured 3D Tilted Cards Showcase (Headings Removed as requested) */}
+        {/* Featured 3D Tilted Cards Showcase (Lighter Background Overlays) */}
         <div className="pt-12 border-t border-white/15 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-items-center">
             <TiltedCard
@@ -79,8 +79,8 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/80 rounded-2xl border border-white/20">
-                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/35 backdrop-blur-sm rounded-2xl border border-white/20">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/15 text-white w-max font-bold">
                     Go 1.22+ Native
                   </span>
                   <div>
@@ -105,7 +105,7 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/80 rounded-2xl border border-white/20">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/35 backdrop-blur-sm rounded-2xl border border-white/20">
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
                     gRPC & OTel Wire
                   </span>

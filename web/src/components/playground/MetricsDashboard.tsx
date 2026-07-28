@@ -25,54 +25,54 @@ export const MetricsDashboard: React.FC = () => {
       icon={<Activity className="w-5 h-5 text-white" />}
       badge="Live Telemetry"
     >
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl liquid-glass-box text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
+      <div className="space-y-6 w-full max-w-full overflow-hidden">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+          <div className="p-4 rounded-2xl liquid-glass-box text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate">
               http_requests_total
             </span>
-            <span className="text-3xl font-extrabold text-white font-mono">{httpCount}</span>
+            <span className="text-2xl md:text-3xl font-extrabold text-white font-mono block truncate">{httpCount}</span>
           </div>
 
-          <div className="p-4 rounded-2xl liquid-glass-box text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
+          <div className="p-4 rounded-2xl liquid-glass-box text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate">
               grpc_requests_total
             </span>
-            <span className="text-3xl font-extrabold text-white font-mono">{grpcCount}</span>
+            <span className="text-2xl md:text-3xl font-extrabold text-white font-mono block truncate">{grpcCount}</span>
           </div>
 
-          <div className="p-4 rounded-2xl liquid-glass-box text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
+          <div className="p-4 rounded-2xl liquid-glass-box text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate">
               http_request_duration
             </span>
-            <span className="text-3xl font-extrabold text-white font-mono">{latencyMs} ms</span>
+            <span className="text-2xl md:text-3xl font-extrabold text-white font-mono block truncate">{latencyMs} ms</span>
           </div>
 
-          <div className="p-4 rounded-2xl liquid-glass-box text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
+          <div className="p-4 rounded-2xl liquid-glass-box text-center overflow-hidden">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1 truncate">
               OTel Active Spans
             </span>
-            <span className="text-3xl font-extrabold text-white font-mono">{activeSpans}</span>
+            <span className="text-2xl md:text-3xl font-extrabold text-white font-mono block truncate">{activeSpans}</span>
           </div>
         </div>
 
         {/* Histogram Buckets Container */}
-        <div className="p-6 rounded-3xl liquid-glass-box space-y-4">
-          <div className="flex items-center justify-between text-xs font-bold text-white">
-            <span>HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
-            <span className="text-white flex items-center gap-1.5 font-bold">
+        <div className="p-6 rounded-3xl liquid-glass-box space-y-4 w-full overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white">
+            <span className="truncate">HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
+            <span className="text-white flex items-center gap-1.5 font-bold shrink-0">
               <Radio className="w-4 h-4 text-white animate-pulse" /> Live Promhttp Stream
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 w-full">
             {[
               { bucket: "le=0.01", count: Math.floor(httpCount * 0.45), pct: "45%" },
               { bucket: "le=0.05", count: Math.floor(httpCount * 0.78), pct: "78%" },
               { bucket: "le=0.25", count: Math.floor(httpCount * 0.95), pct: "95%" },
               { bucket: "le=1.00", count: httpCount, pct: "100%" },
             ].map((b) => (
-              <div key={b.bucket} className="space-y-1">
+              <div key={b.bucket} className="space-y-1 w-full">
                 <div className="flex justify-between text-[11px] text-white font-mono font-medium">
                   <span>Bucket {b.bucket}</span>
                   <span>{b.count} reqs ({b.pct})</span>
