@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { RefreshCw, ShieldAlert, Check } from "lucide-react";
 import PillNav from "@/components/ui/PillNav";
 import BorderGlow from "@/components/ui/BorderGlow";
-import matrixBg from "@/assets/matrix-bg.png";
+import matrixBg from "@/assets/matrix-bg.jpg";
 
 export const RetrySimulator: React.FC = () => {
   const [maxRetries, setMaxRetries] = useState(3);
@@ -77,7 +77,7 @@ export const RetrySimulator: React.FC = () => {
         }}
         className="relative rounded-3xl overflow-hidden text-white transition-all duration-300 p-6 md:p-8"
       >
-        {/* Semi-transparent dark overlay allowing matrix text details to shine through */}
+        {/* Semi-transparent dark overlay allowing matrix tunnel details to shine through */}
         <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] z-0" />
 
         {/* Content */}
