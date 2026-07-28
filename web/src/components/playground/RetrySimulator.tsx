@@ -58,26 +58,23 @@ export const RetrySimulator: React.FC = () => {
   };
 
   return (
-    <div
-      style={{ backgroundColor: "#DCDCDC" }}
-      className="relative rounded-3xl overflow-hidden text-slate-900 border border-slate-300 shadow-2xl transition-all duration-300 p-6 md:p-8"
-    >
+    <div className="relative rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl transition-all duration-300 p-6 md:p-8">
       {/* Panel Header */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-300">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-200 border border-slate-400 text-slate-900">
+          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900">
             <RefreshCw className="w-5 h-5 text-slate-900" />
           </div>
           <div>
             <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
               HTTP Client Retry & Jitter Simulator
             </h3>
-            <p className="text-xs text-slate-700 font-medium mt-0.5">
+            <p className="text-xs text-slate-600 font-medium mt-0.5">
               Exponential Backoff, Idempotency Guard, and 429 Retry-After Engine
             </p>
           </div>
         </div>
-        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-900 border border-slate-400 tracking-wide uppercase">
+        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-300 tracking-wide uppercase">
           Resilience Core
         </span>
       </div>
@@ -85,7 +82,7 @@ export const RetrySimulator: React.FC = () => {
       {/* Body */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400">
+          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
               Max Retries ({maxRetries})
             </label>
@@ -99,7 +96,7 @@ export const RetrySimulator: React.FC = () => {
             />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400">
+          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
               Base Delay: {baseDelayMs} ms
             </label>
@@ -114,7 +111,7 @@ export const RetrySimulator: React.FC = () => {
             />
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-200 border border-slate-400">
+          <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">
               Random Jitter: ±{jitterPercent}%
             </label>
@@ -139,10 +136,10 @@ export const RetrySimulator: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setHttpMethod("GET")}
-                className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-400 transition ${
+                className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-300 transition ${
                   httpMethod === "GET"
                     ? "bg-slate-900 text-white"
-                    : "bg-slate-200 text-slate-900 hover:bg-slate-300"
+                    : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                 }`}
               >
                 GET (Idempotent)
@@ -150,10 +147,10 @@ export const RetrySimulator: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setHttpMethod("POST")}
-                className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-400 transition ${
+                className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-300 transition ${
                   httpMethod === "POST"
                     ? "bg-slate-900 text-white"
-                    : "bg-slate-200 text-slate-900 hover:bg-slate-300"
+                    : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                 }`}
               >
                 POST (Unsafe)
@@ -167,7 +164,7 @@ export const RetrySimulator: React.FC = () => {
             </label>
             <div className="space-y-2">
               {httpMethod === "POST" && (
-                <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-200 border border-slate-400 text-xs text-slate-900 font-semibold cursor-pointer">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-100 border border-slate-300 text-xs text-slate-900 font-semibold cursor-pointer">
                   <input
                     type="checkbox"
                     checked={retryUnsafe}
@@ -177,7 +174,7 @@ export const RetrySimulator: React.FC = () => {
                   Enable RetryUnsafe=true (force retry POST)
                 </label>
               )}
-              <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-200 border border-slate-400 text-xs text-slate-900 font-semibold cursor-pointer">
+              <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-100 border border-slate-300 text-xs text-slate-900 font-semibold cursor-pointer">
                 <input
                   type="checkbox"
                   checked={simulate429}
@@ -204,14 +201,14 @@ export const RetrySimulator: React.FC = () => {
 
         {retryLogs.length > 0 && (
           <div className="space-y-2 font-mono text-xs animate-fadeIn">
-            <p className="text-slate-700 font-bold">// Execution Timeline:</p>
+            <p className="text-slate-600 font-bold">// Execution Timeline:</p>
             {retryLogs.map((log) => (
               <div
                 key={log.attempt}
-                className="p-3.5 rounded-2xl bg-slate-200 border border-slate-400 text-slate-900 flex items-center justify-between transition-all"
+                className="p-3.5 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900 flex items-center justify-between transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-slate-300 border border-slate-400 flex items-center justify-center font-bold text-[11px] text-slate-900">
+                  <span className="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-[11px] text-slate-900">
                     #{log.attempt}
                   </span>
                   <span className="font-bold">{log.status}</span>
@@ -219,15 +216,15 @@ export const RetrySimulator: React.FC = () => {
                 <div className="flex items-center gap-3 text-slate-900 font-semibold">
                   {log.delayMs > 0 && <span>Backoff Delay: +{log.delayMs}ms</span>}
                   {log.isRetryable ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-300 text-slate-900 border border-slate-400 font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-900 border border-slate-300 font-bold">
                       Retrying...
                     </span>
                   ) : log.status.startsWith("200") ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-300 text-slate-900 border border-slate-400 font-bold flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-900 border border-slate-300 font-bold flex items-center gap-1">
                       <Check className="w-3 h-3" /> Resolved
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-300 text-slate-900 border border-slate-400 font-bold flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-900 border border-slate-300 font-bold flex items-center gap-1">
                       <ShieldAlert className="w-3 h-3" /> Aborted (Unsafe/Limit)
                     </span>
                   )}
