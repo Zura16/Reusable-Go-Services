@@ -7,8 +7,7 @@ import {
 	useScroll,
 	useTransform,
 } from "framer-motion";
-import { LiquidMetalButton } from "./liquid-metal-button";
-import { Code2, Compass } from "lucide-react";
+import PillNav from "./PillNav";
 
 interface iISmoothScrollHeroProps {
 	scrollHeight?: number;
@@ -56,10 +55,16 @@ const SmoothScrollHeroBackground: React.FC<
 		["170%", "100%"],
 	);
 
-	const scrollToPlayground = () => {
+	const scrollToPlayground = (e: React.MouseEvent) => {
+		e.preventDefault();
 		const el = document.getElementById("playground");
 		if (el) el.scrollIntoView({ behavior: "smooth" });
 	};
+
+	const heroNavItems = [
+		{ label: "Explore Live Playground", href: "#playground", onClick: scrollToPlayground },
+		{ label: "View GitHub Repo", href: "https://github.com/Zura16/Reusable-Go-Services" },
+	];
 
 	return (
 		<motion.div
@@ -90,7 +95,7 @@ const SmoothScrollHeroBackground: React.FC<
 				}}
 			/>
 
-			{/* Overlay text / Hero content (Clean Dark Solid Overlay) */}
+			{/* Overlay text / Hero content */}
 			<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 p-6 text-center z-10">
 				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-slate-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
 					Go Service Foundation
@@ -102,24 +107,15 @@ const SmoothScrollHeroBackground: React.FC<
 					Typed config, gRPC ProfileService, Auth validator, OpenTelemetry tracing, Prometheus metrics, and context-aware HTTP retries.
 				</p>
 
-				<div className="flex flex-wrap items-center justify-center gap-6">
-					<LiquidMetalButton
-						label="Explore Live Playground"
-						width={210}
-						onClick={scrollToPlayground}
-						icon={<Compass size={16} className="text-white" />}
+				<div className="flex justify-center">
+					<PillNav
+						items={heroNavItems}
+						ease="power3.easeOut"
+						baseColor="#000000"
+						pillColor="#ffffff"
+						hoveredPillTextColor="#ffffff"
+						pillTextColor="#000000"
 					/>
-					<a
-						href="https://github.com/Zura16/Reusable-Go-Services"
-						target="_blank"
-						rel="noreferrer"
-					>
-						<LiquidMetalButton
-							label="View GitHub Repo"
-							width={190}
-							icon={<Code2 size={16} className="text-white" />}
-						/>
-					</a>
 				</div>
 			</div>
 		</motion.div>

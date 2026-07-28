@@ -62,13 +62,8 @@ export function App() {
           </div>
         </div>
 
-        {/* Featured 3D Tilted Cards Showcase */}
+        {/* Featured 3D Tilted Cards Showcase (Headings Removed as requested) */}
         <div className="pt-12 border-t border-white/15 space-y-8">
-          <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold text-white">Interactive 3D Tilted Card Showcase</h3>
-            <p className="text-slate-300 text-sm">Real-time perspective tilt with custom overlay content</p>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-items-center">
             <TiltedCard
               imageSrc="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop"

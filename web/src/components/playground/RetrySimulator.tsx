@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { RefreshCw, Play, ShieldAlert, Check } from "lucide-react";
+import { RefreshCw, ShieldAlert, Check } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import PillNav from "@/components/ui/PillNav";
 
 export const RetrySimulator: React.FC = () => {
   const [maxRetries, setMaxRetries] = useState(3);
@@ -15,7 +15,8 @@ export const RetrySimulator: React.FC = () => {
     { attempt: number; delayMs: number; status: string; isRetryable: boolean }[]
   >([]);
 
-  const runSimulation = async () => {
+  const runSimulation = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     setIsRunning(true);
     setRetryLogs([]);
     const logs: { attempt: number; delayMs: number; status: string; isRetryable: boolean }[] = [];
@@ -61,9 +62,8 @@ export const RetrySimulator: React.FC = () => {
     <LiquidGlassPanel
       title="HTTP Client Retry & Jitter Simulator"
       subtitle="Exponential Backoff, Idempotency Guard, and 429 Retry-After Engine"
-      icon={<RefreshCw className="w-5 h-5 text-emerald-300" />}
+      icon={<RefreshCw className="w-5 h-5 text-white" />}
       badge="Resilience Core"
-      glowColor="emerald"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -77,7 +77,7 @@ export const RetrySimulator: React.FC = () => {
               max="5"
               value={maxRetries}
               onChange={(e) => setMaxRetries(Number(e.target.value))}
-              className="w-full accent-emerald-400 cursor-pointer"
+              className="w-full accent-white cursor-pointer"
             />
           </div>
 
@@ -92,7 +92,7 @@ export const RetrySimulator: React.FC = () => {
               step="50"
               value={baseDelayMs}
               onChange={(e) => setBaseDelayMs(Number(e.target.value))}
-              className="w-full accent-emerald-400 cursor-pointer"
+              className="w-full accent-white cursor-pointer"
             />
           </div>
 
@@ -107,7 +107,7 @@ export const RetrySimulator: React.FC = () => {
               step="5"
               value={jitterPercent}
               onChange={(e) => setJitterPercent(Number(e.target.value))}
-              className="w-full accent-emerald-400 cursor-pointer"
+              className="w-full accent-white cursor-pointer"
             />
           </div>
         </div>
@@ -123,7 +123,7 @@ export const RetrySimulator: React.FC = () => {
                 onClick={() => setHttpMethod("GET")}
                 className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider liquid-glass-btn ${
                   httpMethod === "GET"
-                    ? "border-emerald-400/80 text-emerald-200 bg-emerald-500/30 shadow-emerald-500/40"
+                    ? "border-white text-white bg-white/10"
                     : "text-slate-400"
                 }`}
               >
@@ -134,7 +134,7 @@ export const RetrySimulator: React.FC = () => {
                 onClick={() => setHttpMethod("POST")}
                 className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider liquid-glass-btn ${
                   httpMethod === "POST"
-                    ? "border-amber-400/80 text-amber-200 bg-amber-500/30 shadow-amber-500/40"
+                    ? "border-white text-white bg-white/10"
                     : "text-slate-400"
                 }`}
               >
@@ -149,22 +149,22 @@ export const RetrySimulator: React.FC = () => {
             </label>
             <div className="space-y-2">
               {httpMethod === "POST" && (
-                <label className="flex items-center gap-3 p-3 rounded-2xl liquid-glass-box text-xs text-amber-300 cursor-pointer">
+                <label className="flex items-center gap-3 p-3 rounded-2xl liquid-glass-box text-xs text-white cursor-pointer">
                   <input
                     type="checkbox"
                     checked={retryUnsafe}
                     onChange={(e) => setRetryUnsafe(e.target.checked)}
-                    className="rounded text-amber-500"
+                    className="rounded text-white focus:ring-white"
                   />
                   Enable RetryUnsafe=true (force retry POST)
                 </label>
               )}
-              <label className="flex items-center gap-3 p-3 rounded-2xl liquid-glass-box text-xs text-slate-200 cursor-pointer">
+              <label className="flex items-center gap-3 p-3 rounded-2xl liquid-glass-box text-xs text-white cursor-pointer">
                 <input
                   type="checkbox"
                   checked={simulate429}
                   onChange={(e) => setSimulate429(e.target.checked)}
-                  className="rounded text-emerald-500"
+                  className="rounded text-white focus:ring-white"
                 />
                 Simulate 429 Too Many Requests (Retry-After Header)
               </label>
@@ -173,11 +173,14 @@ export const RetrySimulator: React.FC = () => {
         </div>
 
         <div className="flex justify-center pt-2">
-          <LiquidMetalButton
-            label={isRunning ? "Retrying..." : "Execute Request with Retrier"}
-            width={260}
-            onClick={runSimulation}
-            icon={isRunning ? <RefreshCw size={16} className="text-emerald-300 animate-spin" /> : <Play size={16} className="text-emerald-300" />}
+          <PillNav
+            items={[
+              { label: isRunning ? "Retrying..." : "Execute Request with Retrier", href: "#", onClick: runSimulation }
+            ]}
+            baseColor="#000000"
+            pillColor="#ffffff"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
           />
         </div>
 
@@ -187,32 +190,26 @@ export const RetrySimulator: React.FC = () => {
             {retryLogs.map((log) => (
               <div
                 key={log.attempt}
-                className={`p-3.5 rounded-2xl liquid-glass-box flex items-center justify-between transition-all ${
-                  log.status.startsWith("200")
-                    ? "border-emerald-400/50 text-emerald-300"
-                    : log.status.startsWith("429")
-                    ? "border-purple-400/50 text-purple-300"
-                    : "border-white/20 text-slate-200"
-                }`}
+                className="p-3.5 rounded-2xl liquid-glass-box border border-white/20 text-white flex items-center justify-between transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full liquid-glass-box flex items-center justify-center font-bold text-[11px]">
+                  <span className="w-6 h-6 rounded-full liquid-glass-box flex items-center justify-center font-bold text-[11px] text-white">
                     #{log.attempt}
                   </span>
                   <span className="font-semibold">{log.status}</span>
                 </div>
-                <div className="flex items-center gap-3 text-slate-300">
+                <div className="flex items-center gap-3 text-white">
                   {log.delayMs > 0 && <span>Backoff Delay: +{log.delayMs}ms</span>}
                   {log.isRetryable ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-bold">
                       Retrying...
                     </span>
                   ) : log.status.startsWith("200") ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 font-bold flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-bold flex items-center gap-1">
                       <Check className="w-3 h-3" /> Resolved
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 font-bold flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/20 font-bold flex items-center gap-1">
                       <ShieldAlert className="w-3 h-3" /> Aborted (Unsafe/Limit)
                     </span>
                   )}

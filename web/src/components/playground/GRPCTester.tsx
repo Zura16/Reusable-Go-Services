@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Server, UserCheck, AlertCircle, Clock, Zap } from "lucide-react";
+import { Server, UserCheck, AlertCircle, Clock } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import PillNav from "@/components/ui/PillNav";
 
 export const GRPCTester: React.FC = () => {
   const [userId, setUserId] = useState("user1");
@@ -15,7 +15,8 @@ export const GRPCTester: React.FC = () => {
     latencyMs: number;
   } | null>(null);
 
-  const handleGetProfile = () => {
+  const handleGetProfile = (e: React.MouseEvent) => {
+    e.preventDefault();
     const start = performance.now();
 
     if (simulatedToken !== "valid-token") {
@@ -159,11 +160,14 @@ export const GRPCTester: React.FC = () => {
         </div>
 
         <div className="flex justify-center pt-2">
-          <LiquidMetalButton
-            label="Invoke RPC ProfileService.GetProfile()"
-            width={280}
-            onClick={handleGetProfile}
-            icon={<Zap size={16} className="text-white" />}
+          <PillNav
+            items={[
+              { label: "Invoke RPC ProfileService.GetProfile()", href: "#", onClick: handleGetProfile }
+            ]}
+            baseColor="#000000"
+            pillColor="#ffffff"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
           />
         </div>
 

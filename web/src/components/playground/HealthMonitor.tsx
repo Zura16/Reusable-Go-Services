@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { HeartPulse, RefreshCcw } from "lucide-react";
+import { HeartPulse } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import PillNav from "@/components/ui/PillNav";
 
 export const HealthMonitor: React.FC = () => {
   const [isReady, setIsReady] = useState(true);
   const [healthStatus] = useState({ code: 200, status: "OK", text: "OK" });
   const [readyStatus, setReadyStatus] = useState({ code: 200, status: "OK", text: "Ready" });
 
-  const toggleReadiness = () => {
+  const toggleReadiness = (e: React.MouseEvent) => {
+    e.preventDefault();
     const nextState = !isReady;
     setIsReady(nextState);
     if (nextState) {
@@ -61,11 +62,14 @@ export const HealthMonitor: React.FC = () => {
         </div>
 
         <div className="flex justify-center pt-2">
-          <LiquidMetalButton
-            label={`Toggle readyCheck() (${isReady ? "READY" : "UNAVAILABLE"})`}
-            width={300}
-            onClick={toggleReadiness}
-            icon={<RefreshCcw size={16} className="text-white" />}
+          <PillNav
+            items={[
+              { label: `Toggle readyCheck() (${isReady ? "READY" : "UNAVAILABLE"})`, href: "#", onClick: toggleReadiness }
+            ]}
+            baseColor="#000000"
+            pillColor="#ffffff"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Key, ShieldCheck, Lock, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Key, Lock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import PillNav from "@/components/ui/PillNav";
 
 export const AuthTester: React.FC = () => {
   const [token, setToken] = useState("secret-auth-token");
@@ -15,7 +15,8 @@ export const AuthTester: React.FC = () => {
     redactedHeader: string;
   } | null>(null);
 
-  const handleTestAuth = () => {
+  const handleTestAuth = (e: React.MouseEvent) => {
+    e.preventDefault();
     const validTokens: Record<string, { subject: string; roles: string[] }> = {
       "secret-auth-token": { subject: "alice@example.com", roles: ["user", "admin"] },
       "dev-bearer-token": { subject: "bob@dev.local", roles: ["user"] },
@@ -137,11 +138,14 @@ export const AuthTester: React.FC = () => {
         </div>
 
         <div className="flex justify-center pt-2">
-          <LiquidMetalButton
-            label="Test Request Authentication & Role"
-            width={280}
-            onClick={handleTestAuth}
-            icon={<ShieldCheck size={16} className="text-white" />}
+          <PillNav
+            items={[
+              { label: "Test Request Authentication & Role", href: "#", onClick: handleTestAuth }
+            ]}
+            baseColor="#000000"
+            pillColor="#ffffff"
+            hoveredPillTextColor="#ffffff"
+            pillTextColor="#000000"
           />
         </div>
 
