@@ -13,7 +13,7 @@ import { ShieldCheck, Server, RefreshCw, Activity, Layers, Terminal } from "luci
 export function App() {
   return (
     <div className="min-h-screen bg-black text-slate-100 relative selection:bg-white/20">
-      {/* 3D Animated Shader Gradient Canvas Background */}
+      {/* 3D Animated Shader Canvas Background */}
       <ShaderGradientBG />
 
       {/* Floating Navbar */}
@@ -88,8 +88,8 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/40 backdrop-blur-md rounded-2xl border border-white/20">
-                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/20 text-white w-max font-bold">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/60 backdrop-blur-md rounded-2xl border border-white/20">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
                     Go 1.22+ Native
                   </span>
                   <div>
@@ -114,8 +114,8 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/40 backdrop-blur-md rounded-2xl border border-white/20">
-                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/20 text-white w-max font-bold">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/60 backdrop-blur-md rounded-2xl border border-white/20">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
                     gRPC & OTel Wire
                   </span>
                   <div>
@@ -128,7 +128,7 @@ export function App() {
           </div>
         </div>
 
-        {/* Architecture & Package Highlights (Restored to Original Clean Grid) */}
+        {/* Architecture & Package Highlights (Clean Grid, Zero Gradients, Zero Emojis) */}
         <div className="pt-12 border-t border-white/15 space-y-8">
           <div className="text-center space-y-2">
             <h3 className="text-2xl font-bold text-white">ServiceKit Core Packages</h3>
@@ -140,35 +140,35 @@ export function App() {
               {
                 title: "config",
                 desc: "Typed configuration loading from env vars with defaults, validation, and [REDACTED] stringer protection.",
-                icon: <Terminal className="w-5 h-5 text-slate-200" />,
+                icon: <Terminal className="w-5 h-5 text-white" />,
               },
               {
                 title: "observability",
                 desc: "Zap JSON structured logging, Prometheus counters/histograms, and OpenTelemetry trace providers.",
-                icon: <Activity className="w-5 h-5 text-slate-200" />,
+                icon: <Activity className="w-5 h-5 text-white" />,
               },
               {
                 title: "auth",
                 desc: "Static & Mock TokenValidator implementations using crypto/subtle to prevent timing attacks.",
-                icon: <ShieldCheck className="w-5 h-5 text-slate-200" />,
+                icon: <ShieldCheck className="w-5 h-5 text-white" />,
               },
               {
                 title: "httpserver",
                 desc: "Production HTTP server with /healthz, /readyz, /metrics, recovery, request ID, and body limit middleware.",
-                icon: <Layers className="w-5 h-5 text-slate-200" />,
+                icon: <Layers className="w-5 h-5 text-white" />,
               },
               {
                 title: "httpclient",
                 desc: "Context-aware HTTP client with connection pooling, exponential backoff, jitter, and idempotency guards.",
-                icon: <RefreshCw className="w-5 h-5 text-slate-200" />,
+                icon: <RefreshCw className="w-5 h-5 text-white" />,
               },
               {
                 title: "grpcserver",
                 desc: "gRPC server with unary interceptor chain (Recovery, Logging, Metrics, Auth) and ProfileService demo.",
-                icon: <Server className="w-5 h-5 text-slate-200" />,
+                icon: <Server className="w-5 h-5 text-white" />,
               },
             ].map((pkg) => (
-              <div key={pkg.title} className="p-6 rounded-3xl glass-card border border-white/20 space-y-3">
+              <div key={pkg.title} className="p-6 rounded-3xl glass-card border border-white/15 space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl liquid-glass-box text-white">
                     {pkg.icon}

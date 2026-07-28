@@ -37,7 +37,6 @@ const SmoothScrollHeroBackground: React.FC<
 }) => {
 	const { scrollY } = useScroll();
 
-	// Expands fully (0% to 100% full screen) over scrollHeight before stopping
 	const clipStart = useTransform(
 		scrollY,
 		[0, scrollHeight],
@@ -64,7 +63,7 @@ const SmoothScrollHeroBackground: React.FC<
 
 	return (
 		<motion.div
-			className="sticky top-0 h-screen w-full bg-slate-950/40 overflow-hidden shadow-2xl"
+			className="sticky top-0 h-screen w-full bg-black overflow-hidden shadow-2xl"
 			style={{
 				clipPath,
 				willChange: "transform, opacity",
@@ -92,9 +91,9 @@ const SmoothScrollHeroBackground: React.FC<
 			/>
 
 			{/* Overlay text / Hero content */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-black via-black/50 to-transparent p-6 text-center z-10">
+			<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-6 text-center z-10">
 				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-slate-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
-					⚡ Go Service Foundation
+					Go Service Foundation
 				</span>
 				<h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-4xl drop-shadow-2xl">
 					Observable, Secure & Production-Ready Go Microservices
@@ -108,7 +107,7 @@ const SmoothScrollHeroBackground: React.FC<
 						label="Explore Live Playground"
 						width={210}
 						onClick={scrollToPlayground}
-						icon={<Compass size={16} className="text-slate-200" />}
+						icon={<Compass size={16} className="text-white" />}
 					/>
 					<a
 						href="https://github.com/Zura16/Reusable-Go-Services"
@@ -118,7 +117,7 @@ const SmoothScrollHeroBackground: React.FC<
 						<LiquidMetalButton
 							label="View GitHub Repo"
 							width={190}
-							icon={<Code2 size={16} className="text-slate-300" />}
+							icon={<Code2 size={16} className="text-white" />}
 						/>
 					</a>
 				</div>

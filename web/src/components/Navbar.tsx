@@ -1,5 +1,5 @@
 import React from "react";
-import { Code2, Zap } from "lucide-react";
+import { Code2, Server } from "lucide-react";
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const Navbar: React.FC = () => {
@@ -22,12 +22,12 @@ export const Navbar: React.FC = () => {
           }}
           className="flex items-center gap-3 group cursor-pointer"
         >
-          <div className="p-2 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 border border-white/20 text-white shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-            <Zap className="w-5 h-5 fill-current text-indigo-400" />
+          <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-white">
+            <Server className="w-5 h-5 text-white" />
           </div>
           <div>
             <span className="font-extrabold text-lg text-white tracking-tight">ServiceKit</span>
-            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hidden sm:inline-block">
+            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 border border-white/15 hidden sm:inline-block">
               v0.1.0
             </span>
           </div>
@@ -80,7 +80,7 @@ export const Navbar: React.FC = () => {
             <LiquidMetalButton
               label="GitHub Repo"
               width={140}
-              icon={<Code2 size={16} className="text-indigo-300" />}
+              icon={<Code2 size={16} className="text-white" />}
             />
           </a>
         </div>
