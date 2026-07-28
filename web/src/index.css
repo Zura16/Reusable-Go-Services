@@ -18,6 +18,17 @@
   }
 }
 
+/* Custom Green Cursor Configuration */
+*, html, body {
+  cursor: url('./assets/cursor-default.png') 0 0, url('/cursor-default.png') 0 0, auto;
+}
+
+a, button, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="range"], select, label, [role="button"], .cursor-pointer, button *, a * {
+  cursor: url('./assets/cursor-pointer.png') 10 0, url('/cursor-pointer.png') 10 0, pointer !important;
+}
+
+
+
 /* Minimal Flat & Transparent Containers (Zero Gradients) */
 .glass-panel {
   background: rgba(255, 255, 255, 0.02);
