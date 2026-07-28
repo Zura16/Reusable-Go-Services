@@ -12,8 +12,8 @@ import { ShieldCheck, Server, RefreshCw, Activity, Layers, Terminal } from "luci
 
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 relative selection:bg-purple-300/30">
-      {/* 3D Animated Soft Pastel Shader Gradient Canvas Background */}
+    <div className="min-h-screen bg-black text-slate-100 relative selection:bg-white/20">
+      {/* 3D Animated Shader Gradient Canvas Background */}
       <ShaderGradientBG />
 
       {/* Floating Navbar */}
@@ -33,7 +33,7 @@ export function App() {
       {/* Main Interactive Playground Section */}
       <main id="playground" className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 py-20 space-y-16">
         <div className="text-center space-y-4 max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-purple-200 bg-purple-500/15 border border-purple-300/30 shadow-md">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-slate-200 bg-white/10 border border-white/20">
             Interactive Control Center
           </span>
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
@@ -66,7 +66,69 @@ export function App() {
           </div>
         </div>
 
-        {/* Architecture & Package Highlights with TiltedCard */}
+        {/* Featured 3D Tilted Cards Showcase */}
+        <div className="pt-12 border-t border-white/15 space-y-8">
+          <div className="text-center space-y-2">
+            <h3 className="text-2xl font-bold text-white">Interactive 3D Tilted Card Showcase</h3>
+            <p className="text-slate-300 text-sm">Real-time perspective tilt with custom overlay content</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-items-center">
+            <TiltedCard
+              imageSrc="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop"
+              altText="ServiceKit Go Microservice Architecture"
+              captionText="ServiceKit Architecture — Go 1.22+"
+              containerHeight="320px"
+              containerWidth="100%"
+              imageHeight="320px"
+              imageWidth="100%"
+              rotateAmplitude={14}
+              scaleOnHover={1.05}
+              showMobileWarning={false}
+              showTooltip={true}
+              displayOverlayContent={true}
+              overlayContent={
+                <div className="p-6 h-full flex flex-col justify-between bg-black/40 backdrop-blur-md rounded-2xl border border-white/20">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/20 text-white w-max font-bold">
+                    Go 1.22+ Native
+                  </span>
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-1">Production Microservice Kit</h4>
+                    <p className="text-xs text-slate-200">Zero third-party bloat with standard library primitives</p>
+                  </div>
+                </div>
+              }
+            />
+
+            <TiltedCard
+              imageSrc="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop"
+              altText="High Performance gRPC & Telemetry"
+              captionText="gRPC & Prometheus Telemetry Engine"
+              containerHeight="320px"
+              containerWidth="100%"
+              imageHeight="320px"
+              imageWidth="100%"
+              rotateAmplitude={14}
+              scaleOnHover={1.05}
+              showMobileWarning={false}
+              showTooltip={true}
+              displayOverlayContent={true}
+              overlayContent={
+                <div className="p-6 h-full flex flex-col justify-between bg-black/40 backdrop-blur-md rounded-2xl border border-white/20">
+                  <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/20 text-white w-max font-bold">
+                    gRPC & OTel Wire
+                  </span>
+                  <div>
+                    <h4 className="text-xl font-bold text-white mb-1">Observability & Resilience</h4>
+                    <p className="text-xs text-slate-200">Zap JSON logging, Prometheus metrics, and retries</p>
+                  </div>
+                </div>
+              }
+            />
+          </div>
+        </div>
+
+        {/* Architecture & Package Highlights (Restored to Original Clean Grid) */}
         <div className="pt-12 border-t border-white/15 space-y-8">
           <div className="text-center space-y-2">
             <h3 className="text-2xl font-bold text-white">ServiceKit Core Packages</h3>
@@ -78,68 +140,43 @@ export function App() {
               {
                 title: "config",
                 desc: "Typed configuration loading from env vars with defaults, validation, and [REDACTED] stringer protection.",
-                icon: <Terminal className="w-5 h-5 text-indigo-300" />,
-                badge: "Pastel Lavender",
+                icon: <Terminal className="w-5 h-5 text-slate-200" />,
               },
               {
                 title: "observability",
                 desc: "Zap JSON structured logging, Prometheus counters/histograms, and OpenTelemetry trace providers.",
-                icon: <Activity className="w-5 h-5 text-sky-300" />,
-                badge: "Pastel Sky Blue",
+                icon: <Activity className="w-5 h-5 text-slate-200" />,
               },
               {
                 title: "auth",
                 desc: "Static & Mock TokenValidator implementations using crypto/subtle to prevent timing attacks.",
-                icon: <ShieldCheck className="w-5 h-5 text-purple-300" />,
-                badge: "Pastel Rose",
+                icon: <ShieldCheck className="w-5 h-5 text-slate-200" />,
               },
               {
                 title: "httpserver",
                 desc: "Production HTTP server with /healthz, /readyz, /metrics, recovery, request ID, and body limit middleware.",
-                icon: <Layers className="w-5 h-5 text-emerald-300" />,
-                badge: "Pastel Mint",
+                icon: <Layers className="w-5 h-5 text-slate-200" />,
               },
               {
                 title: "httpclient",
                 desc: "Context-aware HTTP client with connection pooling, exponential backoff, jitter, and idempotency guards.",
-                icon: <RefreshCw className="w-5 h-5 text-rose-300" />,
-                badge: "Pastel Peach",
+                icon: <RefreshCw className="w-5 h-5 text-slate-200" />,
               },
               {
                 title: "grpcserver",
                 desc: "gRPC server with unary interceptor chain (Recovery, Logging, Metrics, Auth) and ProfileService demo.",
-                icon: <Server className="w-5 h-5 text-amber-300" />,
-                badge: "Pastel Butter",
+                icon: <Server className="w-5 h-5 text-slate-200" />,
               },
             ].map((pkg) => (
-              <TiltedCard
-                key={pkg.title}
-                captionText={`servicekit/${pkg.title}`}
-                rotateAmplitude={12}
-                scaleOnHover={1.05}
-                showTooltip={true}
-                containerHeight="100%"
-                containerWidth="100%"
-              >
-                <div className="p-6 rounded-3xl glass-card border border-white/20 space-y-3 h-full flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-2xl liquid-glass-box">
-                          {pkg.icon}
-                        </div>
-                        <h4 className="font-mono font-bold text-lg text-white">servicekit/{pkg.title}</h4>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">{pkg.desc}</p>
+              <div key={pkg.title} className="p-6 rounded-3xl glass-card border border-white/20 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl liquid-glass-box text-white">
+                    {pkg.icon}
                   </div>
-                  <div className="pt-2 flex justify-end">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full liquid-glass-box text-slate-300">
-                      Go Package
-                    </span>
-                  </div>
+                  <h4 className="font-mono font-bold text-lg text-white">servicekit/{pkg.title}</h4>
                 </div>
-              </TiltedCard>
+                <p className="text-xs text-slate-300 leading-relaxed">{pkg.desc}</p>
+              </div>
             ))}
           </div>
         </div>
