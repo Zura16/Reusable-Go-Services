@@ -1,90 +1,61 @@
-import React from "react";
-import { Code2, Server } from "lucide-react";
-import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
+import React, { useState, useEffect } from "react";
+import PillNav from "@/components/ui/PillNav";
 
 export const Navbar: React.FC = () => {
-  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  const [activeSection, setActiveSection] = useState("#playground");
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    const element = document.getElementById(id);
+    setActiveSection(id);
+    const element = document.getElementById(id.replace("#", ""));
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ["playground", "auth", "grpc", "retries", "telemetry"];
+      const scrollPos = window.scrollY + 200;
+
+      for (const section of sections) {
+        const el = document.getElementById(section);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPos >= top && scrollPos < top + height) {
+            setActiveSection(`#${section}`);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const navItems = [
+    { label: "Playground", href: "#playground", onClick: (e: React.MouseEvent) => scrollToSection(e, "#playground") },
+    { label: "Auth", href: "#auth", onClick: (e: React.MouseEvent) => scrollToSection(e, "#auth") },
+    { label: "gRPC", href: "#grpc", onClick: (e: React.MouseEvent) => scrollToSection(e, "#grpc") },
+    { label: "Retries", href: "#retries", onClick: (e: React.MouseEvent) => scrollToSection(e, "#retries") },
+    { label: "Telemetry", href: "#telemetry", onClick: (e: React.MouseEvent) => scrollToSection(e, "#telemetry") },
+    { label: "GitHub", href: "https://github.com/Zura16/Reusable-Go-Services" },
+  ];
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto px-6 py-3 rounded-2xl glass-panel flex items-center justify-between shadow-2xl">
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-          className="flex items-center gap-3 group cursor-pointer"
-        >
-          <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-white">
-            <Server className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <span className="font-extrabold text-lg text-white tracking-tight">ServiceKit</span>
-            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-slate-300 border border-white/15 hidden sm:inline-block">
-              v0.1.0
-            </span>
-          </div>
-        </a>
-
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-          <a
-            href="#playground"
-            onClick={(e) => scrollToSection(e, "playground")}
-            className="hover:text-white transition-colors duration-200 py-1"
-          >
-            Playground
-          </a>
-          <a
-            href="#auth"
-            onClick={(e) => scrollToSection(e, "auth")}
-            className="hover:text-white transition-colors duration-200 py-1"
-          >
-            Auth
-          </a>
-          <a
-            href="#grpc"
-            onClick={(e) => scrollToSection(e, "grpc")}
-            className="hover:text-white transition-colors duration-200 py-1"
-          >
-            gRPC
-          </a>
-          <a
-            href="#retries"
-            onClick={(e) => scrollToSection(e, "retries")}
-            className="hover:text-white transition-colors duration-200 py-1"
-          >
-            Retries
-          </a>
-          <a
-            href="#telemetry"
-            onClick={(e) => scrollToSection(e, "telemetry")}
-            className="hover:text-white transition-colors duration-200 py-1"
-          >
-            Telemetry
-          </a>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a
-            href="https://github.com/Zura16/Reusable-Go-Services"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <LiquidMetalButton
-              label="GitHub Repo"
-              width={140}
-              icon={<Code2 size={16} className="text-white" />}
-            />
-          </a>
-        </div>
-      </div>
-    </nav>
+    <div className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
+      <PillNav
+        items={navItems}
+        activeHref={activeSection}
+        ease="power3.easeOut"
+        baseColor="#000000"
+        pillColor="#ffffff"
+        hoveredPillTextColor="#ffffff"
+        pillTextColor="#000000"
+        initialLoadAnimation={true}
+      />
+    </div>
   );
 };
