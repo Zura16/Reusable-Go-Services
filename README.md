@@ -1,4 +1,4 @@
-# ServiceKit 🚀
+# ServiceKit 
 
 [![CI](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml/badge.svg)](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml)
 [![GitHub Pages Deploy](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/deploy.yml/badge.svg)](https://zura16.github.io/Reusable-Go-Services/)
