@@ -66,11 +66,14 @@ export const AuthTester: React.FC = () => {
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl transition-all duration-300 p-6 md:p-8">
+    <div
+      style={{ backgroundColor: "#F5F4F6" }}
+      className="relative rounded-3xl overflow-hidden text-slate-900 border border-slate-200/80 shadow-2xl transition-all duration-300 p-6 md:p-8"
+    >
       {/* Panel Header */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-300/80">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900">
+          <div className="p-3 rounded-2xl bg-white border border-slate-300 text-slate-900">
             <Lock className="w-5 h-5 text-slate-900" />
           </div>
           <div>
@@ -82,7 +85,7 @@ export const AuthTester: React.FC = () => {
             </p>
           </div>
         </div>
-        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-300 tracking-wide uppercase">
+        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-white text-slate-800 border border-slate-300 tracking-wide uppercase">
           Crypto Safe
         </span>
       </div>
@@ -101,28 +104,28 @@ export const AuthTester: React.FC = () => {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="e.g. secret-auth-token"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-slate-600 transition-all font-mono font-semibold"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-slate-600 transition-all font-mono font-semibold"
               />
             </div>
             <div className="flex flex-wrap gap-2 mt-3">
               <button
                 type="button"
                 onClick={() => setToken("secret-auth-token")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 Preset: Admin Token
               </button>
               <button
                 type="button"
                 onClick={() => setToken("dev-bearer-token")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 Preset: User Token
               </button>
               <button
                 type="button"
                 onClick={() => setToken("invalid-token-123")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 Preset: Invalid Token
               </button>
@@ -142,7 +145,7 @@ export const AuthTester: React.FC = () => {
                   className={`py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-300 transition ${
                     roleRequirement === r
                       ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+                      : "bg-white text-slate-900 hover:bg-slate-100"
                   }`}
                 >
                   {r === "none" ? "None" : r}
@@ -165,7 +168,7 @@ export const AuthTester: React.FC = () => {
         </div>
 
         {lastResult && (
-          <div className="p-5 rounded-3xl bg-slate-100 border border-slate-300 text-slate-900 transition-all animate-fadeIn">
+          <div className="p-5 rounded-3xl bg-white border border-slate-300 text-slate-900 transition-all animate-fadeIn">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 {lastResult.status === 200 ? (
@@ -177,7 +180,7 @@ export const AuthTester: React.FC = () => {
                   HTTP {lastResult.status} — {lastResult.statusText}
                 </span>
               </div>
-              <span className="text-xs font-mono px-3 py-1 rounded-full bg-slate-200 text-slate-900 border border-slate-300 font-bold">
+              <span className="text-xs font-mono px-3 py-1 rounded-full bg-slate-100 text-slate-900 border border-slate-300 font-bold">
                 Log Header: {lastResult.redactedHeader}
               </span>
             </div>

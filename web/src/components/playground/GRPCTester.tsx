@@ -76,11 +76,14 @@ export const GRPCTester: React.FC = () => {
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl transition-all duration-300 p-6 md:p-8">
+    <div
+      style={{ backgroundColor: "#F5F4F6" }}
+      className="relative rounded-3xl overflow-hidden text-slate-900 border border-slate-200/80 shadow-2xl transition-all duration-300 p-6 md:p-8"
+    >
       {/* Panel Header */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-300/80">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900">
+          <div className="p-3 rounded-2xl bg-white border border-slate-300 text-slate-900">
             <Server className="w-5 h-5 text-slate-900" />
           </div>
           <div>
@@ -92,7 +95,7 @@ export const GRPCTester: React.FC = () => {
             </p>
           </div>
         </div>
-        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-300 tracking-wide uppercase">
+        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-white text-slate-800 border border-slate-300 tracking-wide uppercase">
           Protobuf v1
         </span>
       </div>
@@ -111,35 +114,35 @@ export const GRPCTester: React.FC = () => {
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 placeholder="Enter user_id (e.g. user1, user2)"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-slate-600 transition font-mono font-semibold"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-slate-600 transition font-mono font-semibold"
               />
             </div>
             <div className="flex flex-wrap gap-2 mt-3">
               <button
                 type="button"
                 onClick={() => setUserId("user1")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 user1
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("user2")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 user2
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("unknown_999")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 unknown_id
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-900 font-bold"
+                className="text-[11px] px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold"
               >
                 empty
               </button>
@@ -151,7 +154,7 @@ export const GRPCTester: React.FC = () => {
               Interceptor Context Flags
             </label>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-100 border border-slate-300 cursor-pointer hover:bg-slate-200 transition">
+              <label className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-300 cursor-pointer hover:bg-slate-100 transition">
                 <input
                   type="checkbox"
                   checked={simulatedToken === "valid-token"}
@@ -161,7 +164,7 @@ export const GRPCTester: React.FC = () => {
                 <span className="text-xs text-slate-900 font-semibold">Include Valid gRPC Authorization Metadata</span>
               </label>
 
-              <label className="flex items-center gap-3 p-3 rounded-2xl bg-slate-100 border border-slate-300 cursor-pointer hover:bg-slate-200 transition">
+              <label className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-300 cursor-pointer hover:bg-slate-100 transition">
                 <input
                   type="checkbox"
                   checked={simulateTimeout}
@@ -187,10 +190,10 @@ export const GRPCTester: React.FC = () => {
         </div>
 
         {lastResult && (
-          <div className="p-5 rounded-3xl bg-slate-100 border border-slate-300 text-slate-900 font-mono text-xs space-y-3 animate-fadeIn">
+          <div className="p-5 rounded-3xl bg-white border border-slate-300 text-slate-900 font-mono text-xs space-y-3 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-slate-300 pb-3">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold border border-slate-300 text-slate-900 bg-slate-200">
+                <span className="px-3 py-1 rounded-full text-xs font-bold border border-slate-300 text-slate-900 bg-slate-100">
                   codes.{lastResult.code} ({lastResult.codeNum})
                 </span>
               </div>
@@ -200,14 +203,14 @@ export const GRPCTester: React.FC = () => {
             </div>
 
             {lastResult.profile ? (
-              <div className="p-4 rounded-2xl bg-slate-200 border border-slate-300 space-y-1 text-slate-900 font-semibold">
+              <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 space-y-1 text-slate-900 font-semibold">
                 <p className="text-slate-900 font-bold">// gRPC GetProfileResponse protobuf message:</p>
                 <p><span className="text-slate-600 font-bold">user_id:</span> "{lastResult.profile.user_id}"</p>
                 <p><span className="text-slate-600 font-bold">display_name:</span> "{lastResult.profile.display_name}"</p>
                 <p><span className="text-slate-600 font-bold">email:</span> "{lastResult.profile.email}"</p>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-slate-200 border border-slate-300 text-slate-900 flex items-start gap-2 font-bold">
+              <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900 flex items-start gap-2 font-bold">
                 <AlertCircle className="w-4 h-4 text-slate-900 shrink-0 mt-0.5" />
                 <p><strong>gRPC Error:</strong> {lastResult.error}</p>
               </div>

@@ -19,11 +19,14 @@ export const HealthMonitor: React.FC = () => {
   };
 
   return (
-    <div className="relative rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-200 shadow-2xl transition-all duration-300 p-6 md:p-8">
+    <div
+      style={{ backgroundColor: "#F5F4F6" }}
+      className="relative rounded-3xl overflow-hidden text-slate-900 border border-slate-200/80 shadow-2xl transition-all duration-300 p-6 md:p-8"
+    >
       {/* Panel Header */}
-      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200">
+      <div className="relative z-20 flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-300/80">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900">
+          <div className="p-3 rounded-2xl bg-white border border-slate-300 text-slate-900">
             <HeartPulse className="w-5 h-5 text-slate-900" />
           </div>
           <div>
@@ -35,7 +38,7 @@ export const HealthMonitor: React.FC = () => {
             </p>
           </div>
         </div>
-        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-800 border border-slate-300 tracking-wide uppercase">
+        <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-white text-slate-800 border border-slate-300 tracking-wide uppercase">
           K8s Ready
         </span>
       </div>
@@ -44,10 +47,10 @@ export const HealthMonitor: React.FC = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Healthz Panel */}
-          <div className="p-5 rounded-3xl bg-slate-100 border border-slate-300 text-slate-900 space-y-2">
+          <div className="p-5 rounded-3xl bg-white border border-slate-300 text-slate-900 space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-mono font-bold text-xs text-slate-900">GET /healthz</span>
-              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-200 text-slate-900 border border-slate-300">
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-900 border border-slate-300">
                 HTTP {healthStatus.code} {healthStatus.status}
               </span>
             </div>
@@ -60,10 +63,10 @@ export const HealthMonitor: React.FC = () => {
           </div>
 
           {/* Readyz Panel */}
-          <div className="p-5 rounded-3xl bg-slate-100 border border-slate-300 text-slate-900 space-y-2">
+          <div className="p-5 rounded-3xl bg-white border border-slate-300 text-slate-900 space-y-2">
             <div className="flex items-center justify-between mb-2">
               <span className="font-mono font-bold text-xs text-slate-900">GET /readyz</span>
-              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-200 text-slate-900 border border-slate-300">
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-900 border border-slate-300">
                 HTTP {readyStatus.code} {readyStatus.status}
               </span>
             </div>
