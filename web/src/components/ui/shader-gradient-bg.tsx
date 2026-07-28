@@ -20,23 +20,23 @@ export const ShaderGradientBG: React.FC = () => {
     };
     window.addEventListener("resize", handleResize);
 
-    // Monochromatic Metallic Black / Charcoal / Silver Gradient Orbs
+    // Soft Pastel Ambient Orbs (Lavender, Sage Mint, Rose Peach, Sky Blue, Butter Yellow)
     const orbs = [
-      { x: width * 0.2, y: height * 0.25, vx: 0.4, vy: 0.3, radius: Math.max(width, height) * 0.55, color: [45, 55, 72] },   // Charcoal
-      { x: width * 0.8, y: height * 0.3, vx: -0.3, vy: 0.4, radius: Math.max(width, height) * 0.5, color: [71, 85, 105] },   // Metallic Silver
-      { x: width * 0.5, y: height * 0.7, vx: 0.35, vy: -0.4, radius: Math.max(width, height) * 0.55, color: [30, 41, 59] },   // Dark Slate
-      { x: width * 0.15, y: height * 0.85, vx: 0.4, vy: -0.3, radius: Math.max(width, height) * 0.45, color: [15, 23, 42] }, // Deep Obsidian
-      { x: width * 0.85, y: height * 0.85, vx: -0.3, vy: -0.3, radius: Math.max(width, height) * 0.45, color: [100, 116, 139] }, // Light Silver Accent
+      { x: width * 0.2, y: height * 0.25, vx: 0.35, vy: 0.25, radius: Math.max(width, height) * 0.55, color: [185, 175, 225] }, // Pastel Lavender
+      { x: width * 0.8, y: height * 0.3, vx: -0.3, vy: 0.35, radius: Math.max(width, height) * 0.5, color: [165, 210, 195] },  // Pastel Sage Mint
+      { x: width * 0.5, y: height * 0.7, vx: 0.3, vy: -0.35, radius: Math.max(width, height) * 0.55, color: [225, 185, 195] }, // Pastel Rose Peach
+      { x: width * 0.15, y: height * 0.85, vx: 0.35, vy: -0.25, radius: Math.max(width, height) * 0.45, color: [175, 205, 235] }, // Pastel Sky Blue
+      { x: width * 0.85, y: height * 0.85, vx: -0.25, vy: -0.25, radius: Math.max(width, height) * 0.45, color: [235, 225, 185] }, // Pastel Butter Yellow
     ];
 
     let t = 0;
 
     const render = () => {
-      t += 0.004;
-      ctx.fillStyle = "#000000"; // Pure Black
+      t += 0.003;
+      ctx.fillStyle = "#0c0d12"; // Soft dark slate background
       ctx.fillRect(0, 0, width, height);
 
-      // Render sleek metallic charcoal radial gradients
+      // Render soft pastel radial gradients
       orbs.forEach((orb, i) => {
         orb.x += Math.sin(t + i * 1.5) * orb.vx * 1.5;
         orb.y += Math.cos(t + i * 1.5) * orb.vy * 1.5;
@@ -50,9 +50,9 @@ export const ShaderGradientBG: React.FC = () => {
           orb.radius
         );
         const [r, g, b] = orb.color;
-        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.35)`);
-        grad.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.12)`);
-        grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.22)`);
+        grad.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.06)`);
+        grad.addColorStop(1, "rgba(12, 13, 18, 0)");
 
         ctx.fillStyle = grad;
         ctx.beginPath();
