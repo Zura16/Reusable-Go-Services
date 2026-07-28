@@ -1,7 +1,6 @@
 import React from "react";
 import { Navbar } from "@/components/Navbar";
 import SmoothScrollHero from "@/components/ui/smooth-scroll-hero";
-import { ShaderGradientBG } from "@/components/ui/shader-gradient-bg";
 import { AuthTester } from "@/components/playground/AuthTester";
 import { GRPCTester } from "@/components/playground/GRPCTester";
 import { RetrySimulator } from "@/components/playground/RetrySimulator";
@@ -13,9 +12,6 @@ import { ShieldCheck, Server, RefreshCw, Activity, Layers, Terminal } from "luci
 export function App() {
   return (
     <div className="min-h-screen bg-black text-slate-100 relative selection:bg-white/20">
-      {/* 3D Animated Shader Canvas Background */}
-      <ShaderGradientBG />
-
       {/* Floating Navbar */}
       <Navbar />
 
@@ -36,7 +32,7 @@ export function App() {
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-slate-200 bg-white/10 border border-white/20">
             Interactive Control Center
           </span>
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white">
             Test ServiceKit Capabilities Live
           </h2>
           <p className="text-slate-300 text-base md:text-lg font-light leading-relaxed">
@@ -88,7 +84,7 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/60 backdrop-blur-md rounded-2xl border border-white/20">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/80 rounded-2xl border border-white/20">
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
                     Go 1.22+ Native
                   </span>
@@ -114,7 +110,7 @@ export function App() {
               showTooltip={true}
               displayOverlayContent={true}
               overlayContent={
-                <div className="p-6 h-full flex flex-col justify-between bg-black/60 backdrop-blur-md rounded-2xl border border-white/20">
+                <div className="p-6 h-full flex flex-col justify-between bg-black/80 rounded-2xl border border-white/20">
                   <span className="text-xs font-mono px-3 py-1 rounded-full bg-white/10 text-white w-max font-bold">
                     gRPC & OTel Wire
                   </span>
@@ -128,7 +124,7 @@ export function App() {
           </div>
         </div>
 
-        {/* Architecture & Package Highlights (Clean Grid, Zero Gradients, Zero Emojis) */}
+        {/* Architecture & Package Highlights */}
         <div className="pt-12 border-t border-white/15 space-y-8">
           <div className="text-center space-y-2">
             <h3 className="text-2xl font-bold text-white">ServiceKit Core Packages</h3>

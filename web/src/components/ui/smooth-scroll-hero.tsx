@@ -90,8 +90,8 @@ const SmoothScrollHeroBackground: React.FC<
 				}}
 			/>
 
-			{/* Overlay text / Hero content */}
-			<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 p-6 text-center z-10">
+			{/* Overlay text / Hero content (Clean Dark Solid Overlay) */}
+			<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 p-6 text-center z-10">
 				<span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-widest text-slate-300 bg-white/10 border border-white/20 backdrop-blur-md mb-6 shadow-lg">
 					Go Service Foundation
 				</span>
