@@ -95,15 +95,15 @@ export const GRPCTester: React.FC = () => {
         }}
         className="relative rounded-3xl overflow-hidden text-white transition-all duration-300 p-6 md:p-8"
       >
-        {/* Semi-transparent dark overlay allowing matrix tunnel details to shine through */}
-        <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] z-0" />
+        {/* Darker translucent overlay for maximum text readability */}
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm z-0" />
 
         {/* Content */}
         <div className="relative z-10 space-y-6">
           {/* Panel Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-black/60 border border-white/25 text-emerald-400">
+              <div className="p-3 rounded-2xl bg-black/70 border border-white/25 text-emerald-400">
                 <Server className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
@@ -115,7 +115,7 @@ export const GRPCTester: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/70 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
               Protobuf v1
             </span>
           </div>
@@ -133,35 +133,35 @@ export const GRPCTester: React.FC = () => {
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder="Enter user_id (e.g. user1, user2)"
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/65 border border-white/30 text-white text-sm focus:outline-none focus:border-emerald-400 transition font-mono font-semibold shadow-inner"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/80 border border-white/30 text-white text-sm focus:outline-none focus:border-emerald-400 transition font-mono font-semibold shadow-inner"
                 />
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
                 <button
                   type="button"
                   onClick={() => setUserId("user1")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   user1
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserId("user2")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   user2
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserId("unknown_999")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   unknown_id
                 </button>
                 <button
                   type="button"
                   onClick={() => setUserId("")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   empty
                 </button>
@@ -173,7 +173,7 @@ export const GRPCTester: React.FC = () => {
                 Interceptor Context Flags
               </label>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/60 border border-white/20 cursor-pointer hover:bg-black/80 transition">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/70 border border-white/20 cursor-pointer hover:bg-black/90 transition">
                   <input
                     type="checkbox"
                     checked={simulatedToken === "valid-token"}
@@ -183,7 +183,7 @@ export const GRPCTester: React.FC = () => {
                   <span className="text-xs text-white font-semibold">Include Valid gRPC Authorization Metadata</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/60 border border-white/20 cursor-pointer hover:bg-black/80 transition">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/70 border border-white/20 cursor-pointer hover:bg-black/90 transition">
                   <input
                     type="checkbox"
                     checked={simulateTimeout}
@@ -209,10 +209,10 @@ export const GRPCTester: React.FC = () => {
           </div>
 
           {lastResult && (
-            <div className="p-5 rounded-3xl bg-black/75 border border-white/30 text-white font-mono text-xs space-y-3 animate-fadeIn shadow-2xl">
+            <div className="p-5 rounded-3xl bg-black/85 border border-white/30 text-white font-mono text-xs space-y-3 animate-fadeIn shadow-2xl">
               <div className="flex items-center justify-between border-b border-white/20 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold border border-emerald-400/40 text-emerald-300 bg-black/80">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold border border-emerald-400/40 text-emerald-300 bg-black/90">
                     codes.{lastResult.code} ({lastResult.codeNum})
                   </span>
                 </div>
@@ -222,14 +222,14 @@ export const GRPCTester: React.FC = () => {
               </div>
 
               {lastResult.profile ? (
-                <div className="p-4 rounded-2xl bg-black/70 border border-white/20 space-y-1 text-white font-semibold">
+                <div className="p-4 rounded-2xl bg-black/80 border border-white/20 space-y-1 text-white font-semibold">
                   <p className="text-emerald-400 font-bold">// gRPC GetProfileResponse protobuf message:</p>
                   <p><span className="text-emerald-300 font-bold">user_id:</span> "{lastResult.profile.user_id}"</p>
                   <p><span className="text-emerald-300 font-bold">display_name:</span> "{lastResult.profile.display_name}"</p>
                   <p><span className="text-emerald-300 font-bold">email:</span> "{lastResult.profile.email}"</p>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-black/70 border border-white/20 text-white flex items-start gap-2 font-bold">
+                <div className="p-4 rounded-2xl bg-black/80 border border-white/20 text-white flex items-start gap-2 font-bold">
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <p><strong>gRPC Error:</strong> {lastResult.error}</p>
                 </div>

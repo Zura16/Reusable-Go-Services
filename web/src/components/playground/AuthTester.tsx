@@ -85,15 +85,15 @@ export const AuthTester: React.FC = () => {
         }}
         className="relative rounded-3xl overflow-hidden text-white transition-all duration-300 p-6 md:p-8"
       >
-        {/* Semi-transparent dark overlay allowing matrix tunnel details to shine through */}
-        <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] z-0" />
+        {/* Darker translucent overlay for maximum text readability */}
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm z-0" />
 
         {/* Content */}
         <div className="relative z-10 space-y-6">
           {/* Panel Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-black/60 border border-white/25 text-emerald-400">
+              <div className="p-3 rounded-2xl bg-black/70 border border-white/25 text-emerald-400">
                 <Lock className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
@@ -105,7 +105,7 @@ export const AuthTester: React.FC = () => {
                 </p>
               </div>
             </div>
-            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/70 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
               Crypto Safe
             </span>
           </div>
@@ -123,28 +123,28 @@ export const AuthTester: React.FC = () => {
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="e.g. secret-auth-token"
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/65 border border-white/30 text-white text-sm focus:outline-none focus:border-emerald-400 transition-all font-mono font-semibold shadow-inner"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/80 border border-white/30 text-white text-sm focus:outline-none focus:border-emerald-400 transition-all font-mono font-semibold shadow-inner"
                 />
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
                 <button
                   type="button"
                   onClick={() => setToken("secret-auth-token")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   Preset: Admin Token
                 </button>
                 <button
                   type="button"
                   onClick={() => setToken("dev-bearer-token")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   Preset: User Token
                 </button>
                 <button
                   type="button"
                   onClick={() => setToken("invalid-token-123")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
                 >
                   Preset: Invalid Token
                 </button>
@@ -164,7 +164,7 @@ export const AuthTester: React.FC = () => {
                     className={`py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border transition ${
                       roleRequirement === r
                         ? "bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/30"
-                        : "bg-black/60 text-emerald-300 border-white/20 hover:bg-black/80"
+                        : "bg-black/70 text-emerald-300 border-white/20 hover:bg-black/90"
                     }`}
                   >
                     {r === "none" ? "None" : r}
@@ -187,7 +187,7 @@ export const AuthTester: React.FC = () => {
           </div>
 
           {lastResult && (
-            <div className="p-5 rounded-3xl bg-black/75 border border-white/30 text-white transition-all animate-fadeIn shadow-2xl">
+            <div className="p-5 rounded-3xl bg-black/85 border border-white/30 text-white transition-all animate-fadeIn shadow-2xl">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {lastResult.status === 200 ? (
@@ -199,7 +199,7 @@ export const AuthTester: React.FC = () => {
                     HTTP {lastResult.status} — {lastResult.statusText}
                   </span>
                 </div>
-                <span className="text-xs font-mono px-3 py-1 rounded-full bg-black/80 text-emerald-300 border border-emerald-400/40 font-bold">
+                <span className="text-xs font-mono px-3 py-1 rounded-full bg-black/90 text-emerald-300 border border-emerald-400/40 font-bold">
                   Log Header: {lastResult.redactedHeader}
                 </span>
               </div>
