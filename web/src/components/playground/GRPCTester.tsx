@@ -75,30 +75,12 @@ export const GRPCTester: React.FC = () => {
     });
   };
 
-  const getCodeColor = (code: string) => {
-    switch (code) {
-      case "OK":
-        return "bg-emerald-500/20 text-emerald-300 border-emerald-400/50";
-      case "InvalidArgument":
-        return "bg-amber-500/20 text-amber-300 border-amber-400/50";
-      case "NotFound":
-        return "bg-blue-500/20 text-blue-300 border-blue-400/50";
-      case "Unauthenticated":
-        return "bg-red-500/20 text-red-300 border-red-400/50";
-      case "DeadlineExceeded":
-        return "bg-purple-500/20 text-purple-300 border-purple-400/50";
-      default:
-        return "bg-slate-500/20 text-slate-300 border-slate-400/50";
-    }
-  };
-
   return (
     <LiquidGlassPanel
       title="gRPC ProfileService Inspector"
       subtitle="Bufconn In-Process RPC Calls & Status Code Mapping"
-      icon={<Server className="w-5 h-5 text-cyan-300" />}
-      badge="Protobuf v1 / gRPC Wire"
-      glowColor="cyan"
+      icon={<Server className="w-5 h-5 text-white" />}
+      badge="Protobuf v1"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,35 +95,35 @@ export const GRPCTester: React.FC = () => {
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 placeholder="Enter user_id (e.g. user1, user2)"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl liquid-glass-box text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/50 transition font-mono"
+                className="w-full pl-10 pr-4 py-3 rounded-2xl liquid-glass-box text-white text-sm focus:outline-none focus:border-white transition font-mono"
               />
             </div>
             <div className="flex flex-wrap gap-2 mt-3">
               <button
                 type="button"
                 onClick={() => setUserId("user1")}
-                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-slate-200 font-semibold"
+                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-white font-semibold"
               >
                 user1
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("user2")}
-                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-slate-200 font-semibold"
+                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-white font-semibold"
               >
                 user2
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("unknown_999")}
-                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-slate-200 font-semibold"
+                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-white font-semibold"
               >
                 unknown_id
               </button>
               <button
                 type="button"
                 onClick={() => setUserId("")}
-                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-amber-300 border-amber-500/40 font-semibold"
+                className="text-[11px] px-3 py-1.5 rounded-xl liquid-glass-btn text-white font-semibold"
               >
                 empty
               </button>
@@ -158,9 +140,9 @@ export const GRPCTester: React.FC = () => {
                   type="checkbox"
                   checked={simulatedToken === "valid-token"}
                   onChange={(e) => setSimulatedToken(e.target.checked ? "valid-token" : "invalid")}
-                  className="rounded text-cyan-500 focus:ring-cyan-500/50"
+                  className="rounded text-white focus:ring-white"
                 />
-                <span className="text-xs text-slate-200 font-medium">Include Valid gRPC Authorization Metadata</span>
+                <span className="text-xs text-white font-medium">Include Valid gRPC Authorization Metadata</span>
               </label>
 
               <label className="flex items-center gap-3 p-3 rounded-2xl liquid-glass-box cursor-pointer hover:border-white/40 transition">
@@ -168,9 +150,9 @@ export const GRPCTester: React.FC = () => {
                   type="checkbox"
                   checked={simulateTimeout}
                   onChange={(e) => setSimulateTimeout(e.target.checked)}
-                  className="rounded text-cyan-500 focus:ring-cyan-500/50"
+                  className="rounded text-white focus:ring-white"
                 />
-                <span className="text-xs text-slate-200 font-medium">Simulate Context Timeout (1µs Deadline)</span>
+                <span className="text-xs text-white font-medium">Simulate Context Timeout (1µs Deadline)</span>
               </label>
             </div>
           </div>
@@ -181,33 +163,33 @@ export const GRPCTester: React.FC = () => {
             label="Invoke RPC ProfileService.GetProfile()"
             width={280}
             onClick={handleGetProfile}
-            icon={<Zap size={16} className="text-cyan-300" />}
+            icon={<Zap size={16} className="text-white" />}
           />
         </div>
 
         {lastResult && (
-          <div className="p-5 rounded-3xl liquid-glass-box border border-white/20 text-slate-100 font-mono text-xs space-y-3 animate-fadeIn">
+          <div className="p-5 rounded-3xl liquid-glass-box border border-white/20 text-white font-mono text-xs space-y-3 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-white/15 pb-3">
               <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getCodeColor(lastResult.code)}`}>
+                <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/20 text-white bg-white/10">
                   codes.{lastResult.code} ({lastResult.codeNum})
                 </span>
               </div>
-              <span className="text-slate-300 flex items-center gap-1 text-[11px] font-semibold">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" /> {lastResult.latencyMs} ms
+              <span className="text-white flex items-center gap-1 text-[11px] font-semibold">
+                <Clock className="w-3.5 h-3.5 text-white" /> {lastResult.latencyMs} ms
               </span>
             </div>
 
             {lastResult.profile ? (
-              <div className="p-4 rounded-2xl liquid-glass-box space-y-1">
-                <p className="text-emerald-400 font-bold">// gRPC GetProfileResponse protobuf message:</p>
+              <div className="p-4 rounded-2xl liquid-glass-box space-y-1 text-white">
+                <p className="text-white font-bold">// gRPC GetProfileResponse protobuf message:</p>
                 <p><span className="text-slate-400">user_id:</span> "{lastResult.profile.user_id}"</p>
                 <p><span className="text-slate-400">display_name:</span> "{lastResult.profile.display_name}"</p>
                 <p><span className="text-slate-400">email:</span> "{lastResult.profile.email}"</p>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl liquid-glass-box border-red-500/30 text-red-300 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl liquid-glass-box border-white/20 text-white flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
                 <p><strong>gRPC Error:</strong> {lastResult.error}</p>
               </div>
             )}

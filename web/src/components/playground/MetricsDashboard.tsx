@@ -22,9 +22,8 @@ export const MetricsDashboard: React.FC = () => {
     <LiquidGlassPanel
       title="Prometheus Metrics & OpenTelemetry Spans"
       subtitle="Real-Time HTTP/gRPC Collector Metrics & OTLP Traces"
-      icon={<Activity className="w-5 h-5 text-indigo-300" />}
+      icon={<Activity className="w-5 h-5 text-white" />}
       badge="Live Telemetry"
-      glowColor="indigo"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -32,37 +31,37 @@ export const MetricsDashboard: React.FC = () => {
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
               http_requests_total
             </span>
-            <span className="text-3xl font-extrabold text-indigo-300 font-mono drop-shadow-md">{httpCount}</span>
+            <span className="text-3xl font-extrabold text-white font-mono">{httpCount}</span>
           </div>
 
           <div className="p-4 rounded-2xl liquid-glass-box text-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
               grpc_requests_total
             </span>
-            <span className="text-3xl font-extrabold text-cyan-300 font-mono drop-shadow-md">{grpcCount}</span>
+            <span className="text-3xl font-extrabold text-white font-mono">{grpcCount}</span>
           </div>
 
           <div className="p-4 rounded-2xl liquid-glass-box text-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
               http_request_duration
             </span>
-            <span className="text-3xl font-extrabold text-purple-300 font-mono drop-shadow-md">{latencyMs} ms</span>
+            <span className="text-3xl font-extrabold text-white font-mono">{latencyMs} ms</span>
           </div>
 
           <div className="p-4 rounded-2xl liquid-glass-box text-center">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-300 block mb-1">
               OTel Active Spans
             </span>
-            <span className="text-3xl font-extrabold text-emerald-300 font-mono drop-shadow-md">{activeSpans}</span>
+            <span className="text-3xl font-extrabold text-white font-mono">{activeSpans}</span>
           </div>
         </div>
 
         {/* Histogram Buckets Container */}
         <div className="p-6 rounded-3xl liquid-glass-box space-y-4">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+          <div className="flex items-center justify-between text-xs font-bold text-white">
             <span>HTTPRequestDuration Histogram Buckets (.005s to 10s)</span>
-            <span className="text-emerald-300 flex items-center gap-1.5 font-bold">
-              <Radio className="w-4 h-4 animate-pulse text-emerald-400" /> Live Promhttp Stream
+            <span className="text-white flex items-center gap-1.5 font-bold">
+              <Radio className="w-4 h-4 text-white animate-pulse" /> Live Promhttp Stream
             </span>
           </div>
 
@@ -74,13 +73,13 @@ export const MetricsDashboard: React.FC = () => {
               { bucket: "le=1.00", count: httpCount, pct: "100%" },
             ].map((b) => (
               <div key={b.bucket} className="space-y-1">
-                <div className="flex justify-between text-[11px] text-slate-300 font-mono font-medium">
+                <div className="flex justify-between text-[11px] text-white font-mono font-medium">
                   <span>Bucket {b.bucket}</span>
                   <span>{b.count} reqs ({b.pct})</span>
                 </div>
-                <div className="w-full h-2.5 rounded-full liquid-glass-box overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-500 shadow-sm"
+                    className="h-full bg-white transition-all duration-500"
                     style={{ width: b.pct }}
                   />
                 </div>

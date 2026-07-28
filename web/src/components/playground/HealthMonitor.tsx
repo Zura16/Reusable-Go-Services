@@ -22,56 +22,39 @@ export const HealthMonitor: React.FC = () => {
     <LiquidGlassPanel
       title="Health & Readiness Probes"
       subtitle="K8s Probe Endpoints: /healthz (Always 200) & /readyz (Dynamic Check)"
-      icon={<HeartPulse className="w-5 h-5 text-emerald-300" />}
+      icon={<HeartPulse className="w-5 h-5 text-white" />}
       badge="K8s Ready"
-      glowColor="emerald"
     >
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Healthz Panel */}
-          <div className="p-5 rounded-3xl liquid-glass-box border-emerald-400/40 space-y-2">
+          <div className="p-5 rounded-3xl liquid-glass-box border-white/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-xs text-emerald-300">GET /healthz</span>
-              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/50">
+              <span className="font-mono font-bold text-xs text-white">GET /healthz</span>
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-white/10 text-white border border-white/20">
                 HTTP {healthStatus.code} {healthStatus.status}
               </span>
             </div>
-            <p className="text-xs text-slate-200">
+            <p className="text-xs text-slate-300">
               Liveness Probe: Confirms HTTP process is running. Always returns 200 OK.
             </p>
-            <div className="pt-2 font-mono text-[11px] text-emerald-300 font-bold">
+            <div className="pt-2 font-mono text-[11px] text-white font-bold">
               Body: "{healthStatus.text}"
             </div>
           </div>
 
           {/* Readyz Panel */}
-          <div
-            className={`p-5 rounded-3xl liquid-glass-box transition-all ${
-              isReady
-                ? "border-emerald-400/40"
-                : "border-amber-400/40"
-            }`}
-          >
+          <div className="p-5 rounded-3xl liquid-glass-box border-white/20 space-y-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-mono font-bold text-xs text-slate-200">GET /readyz</span>
-              <span
-                className={`px-3 py-0.5 rounded-full text-[11px] font-extrabold border ${
-                  isReady
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/50"
-                    : "bg-amber-500/20 text-amber-300 border-amber-400/50"
-                }`}
-              >
+              <span className="font-mono font-bold text-xs text-white">GET /readyz</span>
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-white/10 text-white border border-white/20">
                 HTTP {readyStatus.code} {readyStatus.status}
               </span>
             </div>
-            <p className="text-xs text-slate-200">
+            <p className="text-xs text-slate-300">
               Readiness Probe: Calls custom `readyCheck()` function (e.g. DB/cache connectivity).
             </p>
-            <div
-              className={`pt-2 font-mono text-[11px] font-bold ${
-                isReady ? "text-emerald-300" : "text-amber-300"
-              }`}
-            >
+            <div className="pt-2 font-mono text-[11px] text-white font-bold">
               Body: "{readyStatus.text}"
             </div>
           </div>
@@ -82,7 +65,7 @@ export const HealthMonitor: React.FC = () => {
             label={`Toggle readyCheck() (${isReady ? "READY" : "UNAVAILABLE"})`}
             width={300}
             onClick={toggleReadiness}
-            icon={<RefreshCcw size={16} className="text-emerald-300" />}
+            icon={<RefreshCcw size={16} className="text-white" />}
           />
         </div>
       </div>

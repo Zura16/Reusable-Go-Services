@@ -59,6 +59,10 @@ export function LiquidMetalButton({
       const style = document.createElement("style");
       style.id = styleId;
       style.textContent = `
+        .shader-container-exploded {
+          overflow: hidden !important;
+          border-radius: 100px !important;
+        }
         .shader-container-exploded canvas {
           width: 100% !important;
           height: 100% !important;
@@ -67,6 +71,8 @@ export function LiquidMetalButton({
           top: 0 !important;
           left: 0 !important;
           border-radius: 100px !important;
+          object-fit: cover !important;
+          pointer-events: none !important;
         }
         @keyframes ripple-animation {
           0% {
@@ -163,11 +169,13 @@ export function LiquidMetalButton({
   };
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block overflow-hidden rounded-full" style={{ borderRadius: "100px" }}>
       <div
         style={{
-          perspective: "1000px",
+          perspective: "800px",
           perspectiveOrigin: "50% 50%",
+          overflow: "hidden",
+          borderRadius: "100px",
         }}
       >
         <div
@@ -175,12 +183,14 @@ export function LiquidMetalButton({
             position: "relative",
             width: `${dimensions.width}px`,
             height: `${dimensions.height}px`,
-            transformStyle: "preserve-3d",
+            borderRadius: "100px",
+            overflow: "hidden",
             transition:
-              "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
-            transform: "none",
+              "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
+            transform: isPressed ? "scale(0.98)" : isHovered ? "scale(1.02)" : "scale(1)",
           }}
         >
+          {/* Label Content Layer */}
           <div
             style={{
               position: "absolute",
@@ -192,10 +202,6 @@ export function LiquidMetalButton({
               alignItems: "center",
               justifyContent: "center",
               gap: "6px",
-              transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, gap 0.4s ease",
-              transform: "translateZ(20px)",
               zIndex: 30,
               pointerEvents: "none",
             }}
@@ -207,8 +213,6 @@ export function LiquidMetalButton({
                   style={{
                     color: "#ffffff",
                     filter: "drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.8))",
-                    transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                    transform: "scale(1)",
                   }}
                 />
               )
@@ -220,8 +224,6 @@ export function LiquidMetalButton({
                   color: "#ffffff",
                   fontWeight: 600,
                   textShadow: "0px 1px 3px rgba(0, 0, 0, 0.9)",
-                  transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                  transform: "scale(1)",
                   whiteSpace: "nowrap",
                   display: "flex",
                   alignItems: "center",
@@ -234,6 +236,7 @@ export function LiquidMetalButton({
             )}
           </div>
 
+          {/* Inner Shadow Container */}
           <div
             style={{
               position: "absolute",
@@ -241,11 +244,10 @@ export function LiquidMetalButton({
               left: 0,
               width: `${dimensions.width}px`,
               height: `${dimensions.height}px`,
-              transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
-              transform: `translateZ(10px) ${isPressed ? "translateY(1px) scale(0.98)" : "translateY(0) scale(1)"}`,
               zIndex: 20,
+              pointerEvents: "none",
+              borderRadius: "100px",
+              overflow: "hidden",
             }}
           >
             <div
@@ -254,16 +256,15 @@ export function LiquidMetalButton({
                 height: `${dimensions.innerHeight}px`,
                 margin: "2px",
                 borderRadius: "100px",
-                background: "linear-gradient(180deg, rgba(45, 45, 60, 0.6) 0%, rgba(10, 10, 20, 0.8) 100%)",
+                background: "rgba(10, 10, 15, 0.4)",
                 boxShadow: isPressed
-                  ? "inset 0px 2px 4px rgba(0, 0, 0, 0.6), inset 0px 1px 2px rgba(0, 0, 0, 0.5)"
-                  : "none",
-                transition:
-                  "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+                  ? "inset 0px 2px 4px rgba(0, 0, 0, 0.6)"
+                  : "inset 0px 1px 2px rgba(255, 255, 255, 0.2)",
               }}
             />
           </div>
 
+          {/* WebGL Shader Canvas Container (Strictly Clipped) */}
           <div
             style={{
               position: "absolute",
@@ -271,11 +272,9 @@ export function LiquidMetalButton({
               left: 0,
               width: `${dimensions.width}px`,
               height: `${dimensions.height}px`,
-              transformStyle: "preserve-3d",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
-              transform: `translateZ(0px) ${isPressed ? "translateY(1px) scale(0.98)" : "translateY(0) scale(1)"}`,
               zIndex: 10,
+              borderRadius: "100px",
+              overflow: "hidden",
             }}
           >
             <div
@@ -283,14 +282,11 @@ export function LiquidMetalButton({
                 height: `${dimensions.height}px`,
                 width: `${dimensions.width}px`,
                 borderRadius: "100px",
-                boxShadow: isPressed
-                  ? "0px 0px 0px 1px rgba(255, 255, 255, 0.3), 0px 1px 2px 0px rgba(0, 0, 0, 0.5)"
-                  : isHovered
-                    ? "0px 0px 0px 1.5px rgba(255, 255, 255, 0.5), 0px 12px 24px 0px rgba(99, 102, 241, 0.4)"
-                    : "0px 0px 0px 1px rgba(255, 255, 255, 0.3), 0px 8px 16px 0px rgba(0, 0, 0, 0.4)",
-                transition:
-                  "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-                background: "rgb(0 0 0 / 0)",
+                overflow: "hidden",
+                boxShadow: isHovered
+                  ? "0px 0px 0px 1.5px rgba(255, 255, 255, 0.5), 0px 8px 16px rgba(0, 0, 0, 0.4)"
+                  : "0px 0px 0px 1px rgba(255, 255, 255, 0.3), 0px 4px 8px rgba(0, 0, 0, 0.4)",
+                background: "transparent",
               }}
             >
               <div
@@ -301,14 +297,13 @@ export function LiquidMetalButton({
                   overflow: "hidden",
                   position: "relative",
                   width: `${dimensions.shaderWidth}px`,
-                  maxWidth: `${dimensions.shaderWidth}px`,
                   height: `${dimensions.shaderHeight}px`,
-                  transition: "width 0.4s ease, height 0.4s ease",
                 }}
               />
             </div>
           </div>
 
+          {/* Interactive Button Click Area */}
           <button
             ref={buttonRef}
             onClick={handleClick}
@@ -327,10 +322,6 @@ export function LiquidMetalButton({
               cursor: "pointer",
               outline: "none",
               zIndex: 40,
-              transformStyle: "preserve-3d",
-              transform: "translateZ(25px)",
-              transition:
-                "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s ease, height 0.4s ease",
               overflow: "hidden",
               borderRadius: "100px",
             }}
