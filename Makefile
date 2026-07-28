@@ -1,4 +1,4 @@
-.PHONY: all generate lint test build clean
+.PHONY: all generate lint test bench coverage build clean tools
 
 # Default target
 all: generate lint test build
@@ -17,14 +17,18 @@ lint:
 test:
 	go test -race -count=1 -coverprofile=coverage.out ./...
 
-# Build all packages and example
+# Run performance benchmarks with memory allocation metrics
+bench:
+	go test -bench=. -benchmem ./...
+
+# View test coverage report
+coverage: test
+	go tool cover -func=coverage.out
+
+# Build all packages and example binary
 build:
 	go build ./...
 	go build -o /dev/null ./example/main.go
-
-# View test coverage
-coverage: test
-	go tool cover -func=coverage.out
 
 # Clean build artifacts
 clean:

@@ -209,3 +209,35 @@ func ExampleHTTPMiddleware() {
 	handler := authMiddleware(roleMiddleware(protected))
 	_ = handler
 }
+
+func BenchmarkStaticValidator(b *testing.B) {
+	validator := auth.NewStaticValidator("secret-token", auth.Identity{Subject: "user123", Roles: []string{"admin"}})
+	ctx := context.Background()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _ = validator.Validate(ctx, "secret-token")
+	}
+}
+
+func BenchmarkHTTPMiddleware(b *testing.B) {
+	validator := auth.NewStaticValidator("valid-token", auth.Identity{Subject: "user1", Roles: []string{"admin"}})
+	middleware := auth.HTTPMiddleware(validator)
+	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+	rec := httptest.NewRecorder()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		handler.ServeHTTP(rec, req)
+	}
+}
+
