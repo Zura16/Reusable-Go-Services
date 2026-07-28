@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Server, UserCheck, AlertCircle, Clock } from "lucide-react";
 import PillNav from "@/components/ui/PillNav";
+import BorderGlow from "@/components/ui/BorderGlow";
 
 const FOREST_IMG = "https://images.unsplash.com/photo-1511884642898-4c92249e20b6?q=80&w=2400&auto=format&fit=crop";
 
@@ -78,156 +79,165 @@ export const GRPCTester: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        backgroundImage: `url(${FOREST_IMG})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-      className="relative rounded-3xl overflow-hidden text-white border border-white/20 shadow-2xl transition-all duration-300 p-6 md:p-8"
+    <BorderGlow
+      edgeSensitivity={35}
+      glowColor="220 80 80"
+      borderRadius={24}
+      glowRadius={40}
+      glowIntensity={1.2}
+      colors={['#ffffff', '#cbd5e1', '#94a3b8']}
     >
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm z-0" />
+      <div
+        style={{
+          backgroundImage: `url(${FOREST_IMG})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+        className="relative rounded-3xl overflow-hidden text-white transition-all duration-300 p-6 md:p-8"
+      >
+        {/* Dark Overlay */}
+        <div className="absolute inset-0 bg-black/65 backdrop-blur-sm z-0" />
 
-      {/* Content */}
-      <div className="relative z-10 space-y-6">
-        {/* Panel Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-white/10 border border-white/20 text-white">
-              <Server className="w-5 h-5 text-white" />
+        {/* Content */}
+        <div className="relative z-10 space-y-6">
+          {/* Panel Header */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-white/10 border border-white/20 text-white">
+                <Server className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-white tracking-tight">
+                  gRPC ProfileService Inspector
+                </h3>
+                <p className="text-xs text-slate-300 font-medium mt-0.5">
+                  Bufconn In-Process RPC Calls & Status Code Mapping
+                </p>
+              </div>
             </div>
+            <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-white/10 text-white border border-white/20 tracking-wide uppercase">
+              Protobuf v1
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-xl font-extrabold text-white tracking-tight">
-                gRPC ProfileService Inspector
-              </h3>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Bufconn In-Process RPC Calls & Status Code Mapping
-              </p>
-            </div>
-          </div>
-          <span className="px-3.5 py-1 text-xs font-semibold rounded-full bg-white/10 text-white border border-white/20 tracking-wide uppercase">
-            Protobuf v1
-          </span>
-        </div>
-
-        {/* Body */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-2">
-              RPC Request: GetProfile(User_ID)
-            </label>
-            <div className="relative">
-              <UserCheck className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter user_id (e.g. user1, user2)"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/50 border border-white/20 text-white text-sm focus:outline-none focus:border-white transition font-mono font-semibold"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <button
-                type="button"
-                onClick={() => setUserId("user1")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
-              >
-                user1
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserId("user2")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
-              >
-                user2
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserId("unknown_999")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
-              >
-                unknown_id
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserId("")}
-                className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
-              >
-                empty
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-2">
-              Interceptor Context Flags
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/50 border border-white/20 cursor-pointer hover:bg-white/10 transition">
-                <input
-                  type="checkbox"
-                  checked={simulatedToken === "valid-token"}
-                  onChange={(e) => setSimulatedToken(e.target.checked ? "valid-token" : "invalid")}
-                  className="rounded text-white focus:ring-white"
-                />
-                <span className="text-xs text-white font-semibold">Include Valid gRPC Authorization Metadata</span>
+              <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-2">
+                RPC Request: GetProfile(User_ID)
               </label>
-
-              <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/50 border border-white/20 cursor-pointer hover:bg-white/10 transition">
+              <div className="relative">
+                <UserCheck className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                 <input
-                  type="checkbox"
-                  checked={simulateTimeout}
-                  onChange={(e) => setSimulateTimeout(e.target.checked)}
-                  className="rounded text-white focus:ring-white"
+                  type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="Enter user_id (e.g. user1, user2)"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/50 border border-white/20 text-white text-sm focus:outline-none focus:border-white transition font-mono font-semibold"
                 />
-                <span className="text-xs text-white font-semibold">Simulate Context Timeout (1µs Deadline)</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setUserId("user1")}
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
+                >
+                  user1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserId("user2")}
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
+                >
+                  user2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserId("unknown_999")}
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
+                >
+                  unknown_id
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUserId("")}
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold"
+                >
+                  empty
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-2">
+                Interceptor Context Flags
               </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/50 border border-white/20 cursor-pointer hover:bg-white/10 transition">
+                  <input
+                    type="checkbox"
+                    checked={simulatedToken === "valid-token"}
+                    onChange={(e) => setSimulatedToken(e.target.checked ? "valid-token" : "invalid")}
+                    className="rounded text-white focus:ring-white"
+                  />
+                  <span className="text-xs text-white font-semibold">Include Valid gRPC Authorization Metadata</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-black/50 border border-white/20 cursor-pointer hover:bg-white/10 transition">
+                  <input
+                    type="checkbox"
+                    checked={simulateTimeout}
+                    onChange={(e) => setSimulateTimeout(e.target.checked)}
+                    className="rounded text-white focus:ring-white"
+                  />
+                  <span className="text-xs text-white font-semibold">Simulate Context Timeout (1µs Deadline)</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-center pt-2">
-          <PillNav
-            items={[
-              { label: "Invoke RPC ProfileService.GetProfile()", href: "#", onClick: handleGetProfile }
-            ]}
-            baseColor="#000000"
-            pillColor="#ffffff"
-            hoveredPillTextColor="#ffffff"
-            pillTextColor="#000000"
-          />
-        </div>
+          <div className="flex justify-center pt-2">
+            <PillNav
+              items={[
+                { label: "Invoke RPC ProfileService.GetProfile()", href: "#", onClick: handleGetProfile }
+              ]}
+              baseColor="#000000"
+              pillColor="#ffffff"
+              hoveredPillTextColor="#ffffff"
+              pillTextColor="#000000"
+            />
+          </div>
 
-        {lastResult && (
-          <div className="p-5 rounded-3xl bg-black/60 border border-white/20 text-white font-mono text-xs space-y-3 animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-white/15 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/20 text-white bg-white/10">
-                  codes.{lastResult.code} ({lastResult.codeNum})
+          {lastResult && (
+            <div className="p-5 rounded-3xl bg-black/60 border border-white/20 text-white font-mono text-xs space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-white/15 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/20 text-white bg-white/10">
+                    codes.{lastResult.code} ({lastResult.codeNum})
+                  </span>
+                </div>
+                <span className="text-white flex items-center gap-1 text-[11px] font-bold">
+                  <Clock className="w-3.5 h-3.5 text-white" /> {lastResult.latencyMs} ms
                 </span>
               </div>
-              <span className="text-white flex items-center gap-1 text-[11px] font-bold">
-                <Clock className="w-3.5 h-3.5 text-white" /> {lastResult.latencyMs} ms
-              </span>
-            </div>
 
-            {lastResult.profile ? (
-              <div className="p-4 rounded-2xl bg-black/50 border border-white/20 space-y-1 text-white font-semibold">
-                <p className="text-white font-bold">// gRPC GetProfileResponse protobuf message:</p>
-                <p><span className="text-slate-300 font-bold">user_id:</span> "{lastResult.profile.user_id}"</p>
-                <p><span className="text-slate-300 font-bold">display_name:</span> "{lastResult.profile.display_name}"</p>
-                <p><span className="text-slate-300 font-bold">email:</span> "{lastResult.profile.email}"</p>
-              </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-black/50 border border-white/20 text-white flex items-start gap-2 font-bold">
-                <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
-                <p><strong>gRPC Error:</strong> {lastResult.error}</p>
-              </div>
-            )}
-          </div>
-        )}
+              {lastResult.profile ? (
+                <div className="p-4 rounded-2xl bg-black/50 border border-white/20 space-y-1 text-white font-semibold">
+                  <p className="text-white font-bold">// gRPC GetProfileResponse protobuf message:</p>
+                  <p><span className="text-slate-300 font-bold">user_id:</span> "{lastResult.profile.user_id}"</p>
+                  <p><span className="text-slate-300 font-bold">display_name:</span> "{lastResult.profile.display_name}"</p>
+                  <p><span className="text-slate-300 font-bold">email:</span> "{lastResult.profile.email}"</p>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-black/50 border border-white/20 text-white flex items-start gap-2 font-bold">
+                  <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
+                  <p><strong>gRPC Error:</strong> {lastResult.error}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </BorderGlow>
   );
 };
