@@ -13,6 +13,12 @@ ServiceKit provides typed configuration, HTTP and gRPC server setup, authenticat
 
 <img width="1256" height="781" alt="Screenshot 2026-07-28 at 3 10 44 PM" src="https://github.com/user-attachments/assets/7475ab2a-80b5-42c2-b69e-9ed7eed7affb" />
 
+
+<img width="1251" height="776" alt="Screenshot 2026-07-28 at 3 10 59 PM" src="https://github.com/user-attachments/assets/cb956f67-e064-439d-9b0a-58d06c7b5b34" />
+
+
+<img width="1244" height="733" alt="Screenshot 2026-07-28 at 3 11 10 PM" src="https://github.com/user-attachments/assets/c24437bd-7092-4fbb-a582-3581bdf621e5" />
+
 ---
 
 ## Quick Start
@@ -38,7 +44,6 @@ make generate
 
 ### Configure
 
-<img width="1251" height="776" alt="Screenshot 2026-07-28 at 3 10 59 PM" src="https://github.com/user-attachments/assets/cb956f67-e064-439d-9b0a-58d06c7b5b34" />
 
 Set environment variables (all optional — sensible defaults are provided):
 
@@ -137,7 +142,7 @@ graph TB
 
 ## Packages
 
-<img width="1244" height="733" alt="Screenshot 2026-07-28 at 3 11 10 PM" src="https://github.com/user-attachments/assets/c24437bd-7092-4fbb-a582-3581bdf621e5" />
+
 
 ### `config` — Typed Configuration
 
