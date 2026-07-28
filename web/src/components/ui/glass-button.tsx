@@ -34,26 +34,48 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
   };
 
   const glowClasses = {
-    indigo: "hover:shadow-indigo-500/30 hover:border-indigo-400/40",
-    purple: "hover:shadow-purple-500/30 hover:border-purple-400/40",
-    emerald: "hover:shadow-emerald-500/30 hover:border-emerald-400/40",
-    cyan: "hover:shadow-cyan-500/30 hover:border-cyan-400/40",
-    amber: "hover:shadow-amber-500/30 hover:border-amber-400/40",
-    white: "hover:shadow-white/20 hover:border-white/40",
+    indigo: "hover:shadow-indigo-500/50 hover:border-indigo-300/60",
+    purple: "hover:shadow-purple-500/50 hover:border-purple-300/60",
+    emerald: "hover:shadow-emerald-500/50 hover:border-emerald-300/60",
+    cyan: "hover:shadow-cyan-500/50 hover:border-cyan-300/60",
+    amber: "hover:shadow-amber-500/50 hover:border-amber-300/60",
+    white: "hover:shadow-white/30 hover:border-white/60",
+  };
+
+  const glowBackgrounds = {
+    indigo: "bg-indigo-500/30",
+    purple: "bg-purple-500/30",
+    emerald: "bg-emerald-500/30",
+    cyan: "bg-cyan-500/30",
+    amber: "bg-amber-500/30",
+    white: "bg-white/20",
   };
 
   const content = (
     <>
-      {/* Specular cursor glow */}
+      {/* Top Gloss Specular Highlight Line */}
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/90 to-transparent z-20" />
+
+      {/* Intense Cursor Follow Radial Specular Lens */}
       {isHovered && (
         <span
           className="pointer-events-none absolute -inset-px opacity-100 transition-opacity duration-300 z-10"
           style={{
-            background: `radial-gradient(150px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255, 255, 255, 0.25), transparent 70%)`,
+            background: `radial-gradient(180px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.1) 40%, transparent 80%)`,
           }}
         />
       )}
-      <span className="relative z-20 flex items-center justify-center gap-2">
+
+      {/* Dynamic Ambient Fluid Glow Aura */}
+      <span
+        className={cn(
+          "pointer-events-none absolute inset-0 blur-xl opacity-0 transition-opacity duration-500 z-0",
+          glowBackgrounds[glowColor],
+          isHovered ? "opacity-60" : "opacity-0"
+        )}
+      />
+
+      <span className="relative z-20 flex items-center justify-center gap-2 text-white font-bold tracking-wide drop-shadow-md">
         {icon}
         {children}
       </span>
@@ -61,7 +83,7 @@ export const LiquidGlassButton: React.FC<LiquidGlassButtonProps> = ({
   );
 
   const combinedClasses = cn(
-    "liquid-glass-btn text-white font-semibold py-3 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm tracking-wide cursor-pointer transition-all duration-300",
+    "liquid-glass-btn font-bold py-3.5 px-7 rounded-2xl flex items-center justify-center gap-2 text-sm cursor-pointer transition-all duration-300 select-none",
     glowClasses[glowColor],
     className
   );

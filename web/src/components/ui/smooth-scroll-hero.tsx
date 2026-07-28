@@ -64,7 +64,7 @@ const SmoothScrollHeroBackground: React.FC<
 
 	return (
 		<motion.div
-			className="sticky top-0 h-screen w-full bg-black overflow-hidden shadow-2xl"
+			className="sticky top-0 h-screen w-full bg-slate-950/40 overflow-hidden shadow-2xl"
 			style={{
 				clipPath,
 				willChange: "transform, opacity",
