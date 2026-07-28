@@ -1,6 +1,6 @@
 import React from "react";
 import { Code2, Zap } from "lucide-react";
-import { LiquidGlassButton } from "@/components/ui/glass-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const Navbar: React.FC = () => {
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -72,16 +72,17 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <LiquidGlassButton
+          <a
             href="https://github.com/Zura16/Reusable-Go-Services"
             target="_blank"
             rel="noreferrer"
-            glowColor="indigo"
-            icon={<Code2 className="w-4 h-4 text-indigo-300" />}
-            className="py-2 px-4 text-xs font-semibold rounded-xl"
           >
-            <span className="hidden sm:inline">GitHub Repo</span>
-          </LiquidGlassButton>
+            <LiquidMetalButton
+              label="GitHub Repo"
+              width={140}
+              icon={<Code2 size={16} className="text-indigo-300" />}
+            />
+          </a>
         </div>
       </div>
     </nav>

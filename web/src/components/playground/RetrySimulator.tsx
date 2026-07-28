@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { RefreshCw, Play, ShieldAlert, Check } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidGlassButton } from "@/components/ui/glass-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const RetrySimulator: React.FC = () => {
   const [maxRetries, setMaxRetries] = useState(3);
@@ -172,15 +172,14 @@ export const RetrySimulator: React.FC = () => {
           </div>
         </div>
 
-        <LiquidGlassButton
-          onClick={runSimulation}
-          disabled={isRunning}
-          glowColor="emerald"
-          icon={isRunning ? <RefreshCw className="w-4 h-4 text-emerald-300 animate-spin" /> : <Play className="w-4 h-4 text-emerald-300" />}
-          className="w-full py-3.5 text-sm font-semibold rounded-2xl disabled:opacity-50"
-        >
-          Execute Request with Retrier
-        </LiquidGlassButton>
+        <div className="flex justify-center pt-2">
+          <LiquidMetalButton
+            label={isRunning ? "Retrying..." : "Execute Request with Retrier"}
+            width={260}
+            onClick={runSimulation}
+            icon={isRunning ? <RefreshCw size={16} className="text-emerald-300 animate-spin" /> : <Play size={16} className="text-emerald-300" />}
+          />
+        </div>
 
         {retryLogs.length > 0 && (
           <div className="space-y-2 font-mono text-xs animate-fadeIn">

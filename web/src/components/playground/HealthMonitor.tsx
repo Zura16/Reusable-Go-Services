@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { HeartPulse, RefreshCcw } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidGlassButton } from "@/components/ui/glass-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const HealthMonitor: React.FC = () => {
   const [isReady, setIsReady] = useState(true);
@@ -77,14 +77,14 @@ export const HealthMonitor: React.FC = () => {
           </div>
         </div>
 
-        <LiquidGlassButton
-          onClick={toggleReadiness}
-          glowColor={isReady ? "emerald" : "amber"}
-          icon={<RefreshCcw className="w-4 h-4 text-emerald-300" />}
-          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
-        >
-          Toggle Dynamic readyCheck() State (Currently {isReady ? "READY" : "UNAVAILABLE"})
-        </LiquidGlassButton>
+        <div className="flex justify-center pt-2">
+          <LiquidMetalButton
+            label={`Toggle readyCheck() (${isReady ? "READY" : "UNAVAILABLE"})`}
+            width={300}
+            onClick={toggleReadiness}
+            icon={<RefreshCcw size={16} className="text-emerald-300" />}
+          />
+        </div>
       </div>
     </LiquidGlassPanel>
   );

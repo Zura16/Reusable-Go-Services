@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { useState, useEffect } from "react";
 
 import {
 	motion,
@@ -7,7 +8,7 @@ import {
 	useScroll,
 	useTransform,
 } from "framer-motion";
-import { LiquidGlassButton } from "./glass-button";
+import { LiquidMetalButton } from "./liquid-metal-button";
 import { Code2, Compass } from "lucide-react";
 
 interface iISmoothScrollHeroProps {
@@ -36,15 +37,29 @@ const SmoothScrollHeroBackground: React.FC<
 	finalClipPercentage,
 }) => {
 	const { scrollY } = useScroll();
+	const [docScrollMax, setDocScrollMax] = useState(scrollHeight + 1000);
 
+	useEffect(() => {
+		const updateDocMax = () => {
+			const max = document.documentElement.scrollHeight - window.innerHeight;
+			if (max > 500) {
+				setDocScrollMax(max);
+			}
+		};
+		updateDocMax();
+		window.addEventListener("resize", updateDocMax);
+		return () => window.removeEventListener("resize", updateDocMax);
+	}, []);
+
+	// Expand continuously all the way down to the bottom of the page
 	const clipStart = useTransform(
 		scrollY,
-		[0, scrollHeight],
+		[0, docScrollMax],
 		[initialClipPercentage, 0],
 	);
 	const clipEnd = useTransform(
 		scrollY,
-		[0, scrollHeight],
+		[0, docScrollMax],
 		[finalClipPercentage, 100],
 	);
 
@@ -52,19 +67,18 @@ const SmoothScrollHeroBackground: React.FC<
 
 	const backgroundSize = useTransform(
 		scrollY,
-		[0, scrollHeight + 500],
+		[0, docScrollMax],
 		["170%", "100%"],
 	);
 
-	const scrollToPlayground = (e: React.MouseEvent) => {
-		e.preventDefault();
+	const scrollToPlayground = () => {
 		const el = document.getElementById("playground");
 		if (el) el.scrollIntoView({ behavior: "smooth" });
 	};
 
 	return (
 		<motion.div
-			className="sticky top-0 h-screen w-full bg-slate-950/40 overflow-hidden shadow-2xl"
+			className="sticky top-0 h-screen w-full bg-slate-950/30 overflow-hidden shadow-2xl"
 			style={{
 				clipPath,
 				willChange: "transform, opacity",
@@ -103,25 +117,24 @@ const SmoothScrollHeroBackground: React.FC<
 					Typed config, gRPC ProfileService, Auth validator, OpenTelemetry tracing, Prometheus metrics, and context-aware HTTP retries.
 				</p>
 
-				<div className="flex flex-wrap items-center justify-center gap-4">
-					<LiquidGlassButton
+				<div className="flex flex-wrap items-center justify-center gap-6">
+					<LiquidMetalButton
+						label="Explore Live Playground"
+						width={210}
 						onClick={scrollToPlayground}
-						glowColor="purple"
-						icon={<Compass className="w-4 h-4 text-purple-300" />}
-						className="py-3.5 px-8 text-base font-bold rounded-2xl"
-					>
-						Explore Live Playground
-					</LiquidGlassButton>
-					<LiquidGlassButton
+						icon={<Compass size={16} className="text-indigo-300" />}
+					/>
+					<a
 						href="https://github.com/Zura16/Reusable-Go-Services"
 						target="_blank"
 						rel="noreferrer"
-						glowColor="white"
-						icon={<Code2 className="w-4 h-4 text-slate-300" />}
-						className="py-3.5 px-8 text-base font-semibold rounded-2xl"
 					>
-						View GitHub Repo
-					</LiquidGlassButton>
+						<LiquidMetalButton
+							label="View GitHub Repo"
+							width={190}
+							icon={<Code2 size={16} className="text-purple-300" />}
+						/>
+					</a>
 				</div>
 			</div>
 		</motion.div>

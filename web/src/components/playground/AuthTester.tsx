@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Key, ShieldCheck, Lock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidGlassButton } from "@/components/ui/glass-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const AuthTester: React.FC = () => {
   const [token, setToken] = useState("secret-auth-token");
@@ -137,14 +137,14 @@ export const AuthTester: React.FC = () => {
           </div>
         </div>
 
-        <LiquidGlassButton
-          onClick={handleTestAuth}
-          glowColor="purple"
-          icon={<ShieldCheck className="w-4 h-4 text-purple-300" />}
-          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
-        >
-          Test Request Authentication & Role
-        </LiquidGlassButton>
+        <div className="flex justify-center pt-2">
+          <LiquidMetalButton
+            label="Test Request Authentication & Role"
+            width={280}
+            onClick={handleTestAuth}
+            icon={<ShieldCheck size={16} className="text-purple-300" />}
+          />
+        </div>
 
         {lastResult && (
           <div

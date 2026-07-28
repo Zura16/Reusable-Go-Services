@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Server, UserCheck, AlertCircle, Clock, Zap } from "lucide-react";
 import { LiquidGlassPanel } from "@/components/ui/liquid-glass-panel";
-import { LiquidGlassButton } from "@/components/ui/glass-button";
+import { LiquidMetalButton } from "@/components/ui/liquid-metal-button";
 
 export const GRPCTester: React.FC = () => {
   const [userId, setUserId] = useState("user1");
@@ -176,14 +176,14 @@ export const GRPCTester: React.FC = () => {
           </div>
         </div>
 
-        <LiquidGlassButton
-          onClick={handleGetProfile}
-          glowColor="cyan"
-          icon={<Zap className="w-4 h-4 text-cyan-300" />}
-          className="w-full py-3.5 text-sm font-semibold rounded-2xl"
-        >
-          Invoke RPC ProfileService.GetProfile()
-        </LiquidGlassButton>
+        <div className="flex justify-center pt-2">
+          <LiquidMetalButton
+            label="Invoke RPC ProfileService.GetProfile()"
+            width={280}
+            onClick={handleGetProfile}
+            icon={<Zap size={16} className="text-cyan-300" />}
+          />
+        </div>
 
         {lastResult && (
           <div className="p-5 rounded-2xl bg-slate-900/80 border border-white/15 text-slate-100 font-mono text-xs space-y-3 animate-fadeIn">
