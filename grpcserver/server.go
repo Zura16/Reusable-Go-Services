@@ -75,7 +75,7 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		UnaryRecoveryInterceptor(logger),
 		UnaryLoggingInterceptor(logger),
-		otelgrpc.UnaryServerInterceptor(),
+		otelgrpc.UnaryServerInterceptor(), //nolint:staticcheck // SA1019: otelgrpc legacy unary interceptor support
 	}
 
 	if metrics != nil {
@@ -87,8 +87,9 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
-		otelgrpc.StreamServerInterceptor(),
+		otelgrpc.StreamServerInterceptor(), //nolint:staticcheck // SA1019: otelgrpc legacy stream interceptor support
 	}
+
 	if validator != nil {
 		streamInterceptors = append(streamInterceptors, StreamAuthInterceptor(validator))
 	}

@@ -15,7 +15,7 @@ lint:
 
 # Run tests with race detector
 test:
-	go test -race -count=1 -coverprofile=coverage.out ./...
+	go test -race -count=1 -coverprofile=coverage.out ./auth ./config ./grpcserver ./httpclient ./httpserver ./observability
 
 # Run performance benchmarks with memory allocation metrics
 bench:

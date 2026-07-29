@@ -4,7 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
-	"time"
+
 
 	"github.com/Zura16/Reusable-Go-Services/auth"
 	"github.com/Zura16/Reusable-Go-Services/config"
@@ -31,48 +31,53 @@ func (m *mockValidator) Validate(ctx context.Context, token string) (auth.Identi
 }
 
 // setupTestServer creates a gRPC server using bufconn for testing.
-func setupTestServer(t *testing.T) (*grpc.ClientConn, *Server) {
+func setupTestServer(t *testing.T) (*grpc.ClientConn, func()) {
 	lis := bufconn.Listen(bufSize)
-	logger := zap.NewNop()
-	
-	// mock validator
-	val := &mockValidator{}
 
-	cfg := config.Config{GRPCPort: 50051}
-	
-	srv, err := New(cfg, logger, val, nil, WithListener(lis))
+	logger := zap.NewNop()
+	validator := auth.NewStaticValidator("valid-token", auth.Identity{Subject: "user1"})
+
+	srv, err := New(
+		config.Config{GRPCPort: 9090},
+		logger,
+		validator,
+		nil,
+		WithListener(lis),
+	)
 	if err != nil {
-		t.Fatalf("Failed to create server: %v", err)
+		t.Fatalf("failed to create server: %v", err)
 	}
 
 	profilev1.RegisterProfileServiceServer(srv.Server(), NewProfileServer())
 
 	go func() {
-		_ = srv.Serve()
+		if err := srv.Serve(); err != nil && err != grpc.ErrServerStopped {
+			_ = err
+		}
 	}()
 
-	bufDialer := func(context.Context, string) (net.Conn, error) {
-		return lis.Dial()
-	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
+	ctx := context.Background()
+	//nolint:staticcheck // SA1019: DialContext is used with custom bufconn dialer for unit testing
 	conn, err := grpc.DialContext(ctx, "bufnet",
-		grpc.WithContextDialer(bufDialer),
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return lis.Dial()
+		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
 
-	t.Cleanup(func() {
+	cleanup := func() {
 		_ = conn.Close()
 		srv.GracefulStop()
-	})
+	}
 
-	return conn, srv
+	return conn, cleanup
 }
+
 
 func TestGetProfile_Success(t *testing.T) {
 	t.Parallel()
@@ -196,10 +201,12 @@ func TestRecoveryInterceptor(t *testing.T) {
 		return lis.Dial()
 	}
 
+	//nolint:staticcheck // SA1019: DialContext used for bufconn test
 	conn, err := grpc.DialContext(context.Background(), "bufnet",
 		grpc.WithContextDialer(bufDialer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
+
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
