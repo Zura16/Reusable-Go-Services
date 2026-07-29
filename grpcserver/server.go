@@ -47,12 +47,6 @@ func WithInsecureDevelopmentMode() Option {
 	}
 }
 
-// WithoutAuthenticationForDevelopment explicitly opts out of authentication requirements for local development.
-func WithoutAuthenticationForDevelopment() Option {
-	return func(c *serverConfig) {
-		c.allowInsecureDev = true
-	}
-}
 
 // WithReflection enables gRPC reflection on the server.
 func WithReflection() Option {

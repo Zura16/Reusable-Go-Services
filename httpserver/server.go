@@ -178,6 +178,7 @@ func (s *Server) Handler() http.Handler {
 
 // ListenAndServe starts the HTTP server (and dedicated metrics server if configured) to begin accepting requests.
 // Creates network listeners synchronously so binding failures on either port trigger immediate error return.
+// Supervises both servers so an unexpected failure of either server triggers coordinated shutdown of the sibling.
 func (s *Server) ListenAndServe() error {
 	mainLis, err := net.Listen("tcp", s.httpServer.Addr)
 	if err != nil {
@@ -194,12 +195,16 @@ func (s *Server) ListenAndServe() error {
 		defer func() { _ = metricsLis.Close() }()
 	}
 
-	var g errgroup.Group
+	g, gCtx := errgroup.WithContext(context.Background())
 
 	if metricsLis != nil {
 		g.Go(func() error {
 			s.logger.Info("starting dedicated metrics server", zap.String("addr", s.metricsServer.Addr))
-			if serveErr := s.metricsServer.Serve(metricsLis); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			serveErr := s.metricsServer.Serve(metricsLis)
+			if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = s.httpServer.Shutdown(shutdownCtx)
 				return fmt.Errorf("metrics server error: %w", serveErr)
 			}
 			return nil
@@ -208,31 +213,47 @@ func (s *Server) ListenAndServe() error {
 
 	g.Go(func() error {
 		s.logger.Info("starting http server", zap.String("addr", s.httpServer.Addr))
-		if serveErr := s.httpServer.Serve(mainLis); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+		serveErr := s.httpServer.Serve(mainLis)
+		if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			if s.metricsServer != nil {
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = s.metricsServer.Shutdown(shutdownCtx)
+			}
 			return fmt.Errorf("http server error: %w", serveErr)
 		}
 		return nil
 	})
 
+	go func() {
+		<-gCtx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if s.metricsServer != nil {
+			_ = s.metricsServer.Shutdown(shutdownCtx)
+		}
+		_ = s.httpServer.Shutdown(shutdownCtx)
+	}()
+
 	return g.Wait()
 }
 
-// Shutdown gracefully shuts down the HTTP server and dedicated metrics server.
+// Shutdown gracefully shuts down the HTTP server and dedicated metrics server concurrently.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("shutting down http server")
-	var errs []error
+	var g errgroup.Group
 
 	if s.metricsServer != nil {
-		if err := s.metricsServer.Shutdown(ctx); err != nil {
-			errs = append(errs, err)
-		}
+		g.Go(func() error {
+			return s.metricsServer.Shutdown(ctx)
+		})
 	}
 
-	if err := s.httpServer.Shutdown(ctx); err != nil {
-		errs = append(errs, err)
-	}
+	g.Go(func() error {
+		return s.httpServer.Shutdown(ctx)
+	})
 
-	return errors.Join(errs...)
+	return g.Wait()
 }
 
 // Handle registers a standard http.Handler for the specified pattern.

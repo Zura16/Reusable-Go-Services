@@ -24,7 +24,7 @@ ServiceKit provides typed configuration, HTTP and gRPC server setup, authenticat
 ### Install
 
 ```bash
-go get github.com/Zura16/Reusable-Go-Services@v0.1.0
+go get github.com/Zura16/Reusable-Go-Services@v0.1.1
 ```
 
 ### Prerequisites
@@ -51,7 +51,18 @@ export SERVICEKIT_METRICS_PORT=9091      # Prometheus metrics port (default: 909
 export SERVICEKIT_SHUTDOWN_TIMEOUT=15s   # Graceful shutdown timeout (default: 15s)
 export SERVICEKIT_LOG_LEVEL=info         # Log level: debug|info|warn|error (default: info)
 export SERVICEKIT_AUTH_TOKEN=my-secret   # Bearer token for authentication
+export SERVICEKIT_ALLOW_INSECURE=true    # Explicitly enable insecure dev mode if token is empty
 ```
+
+| Variable | Default | Description |
+|---|---|---|
+| `SERVICEKIT_PORT` | `8080` | HTTP server port |
+| `SERVICEKIT_GRPC_PORT` | `9090` | gRPC server port |
+| `SERVICEKIT_METRICS_PORT` | `9091` | Prometheus metrics port |
+| `SERVICEKIT_SHUTDOWN_TIMEOUT` | `15s` | Graceful shutdown timeout |
+| `SERVICEKIT_LOG_LEVEL` | `info` | Minimum log level (debug, info, warn, error) |
+| `SERVICEKIT_AUTH_TOKEN` | *(empty)* | Bearer token for authentication |
+| `SERVICEKIT_ALLOW_INSECURE` | `false` | Explicitly enables insecure dev mode |
 
 ### Run
 
@@ -99,7 +110,7 @@ func main() {
 Built-in features:
 - `GET /healthz` — liveness probe (returns `200 OK`)
 - `GET /readyz` — readiness probe (returns `200` or `503`)
-- `GET /metrics` — Prometheus scrape endpoint (served on main server or dedicated `MetricsPort` if configured)
+- `GET /metrics` — Prometheus scrape endpoint (isolated on dedicated `MetricsPort` if configured)
 - Structured JSON logging with sanitized request IDs
 - Panic recovery with JSON error logging and Prometheus counter increments
 - Request size limits (`http.MaxBytesReader`)
@@ -144,7 +155,7 @@ Loads configuration from environment variables with safe defaults and validation
 ```go
 cfg, err := config.Load()
 fmt.Println(cfg)
-// Config{Port:8080 ShutdownTimeout:15s LogLevel:info AuthToken:[REDACTED] GRPCPort:9090 MetricsPort:9091}
+// Config{Port:8080 ShutdownTimeout:15s LogLevel:info AuthToken:[REDACTED] AllowInsecure:false GRPCPort:9090 MetricsPort:9091}
 ```
 
 ### `observability` — Logging, Metrics & Tracing
@@ -196,8 +207,6 @@ srv, _ := httpserver.New(cfg, logger,
     httpserver.WithReadyCheck(func() bool { return dbReady }),
     httpserver.WithMaxBodySize(5 << 20), // 5MB limit
 )
-
-// Automatic dedicated metrics server started on MetricsPort if configured on a separate port
 ```
 
 Default HTTP middleware chain order:
@@ -232,7 +241,6 @@ gRPC server with complete unary and stream interceptor chains:
 
 ```go
 grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics,
-    grpcserver.WithReflection(),
     grpcserver.WithAuthentication(validator), // or grpcserver.WithInsecureDevelopmentMode()
     grpcserver.WithTLS(tlsConfig),           // optional TLS configuration
 )
@@ -252,6 +260,10 @@ Interceptor chain order (unary and streaming):
 See [`example/main.go`](example/main.go) for a complete, runnable service wiring up HTTP, dedicated metrics server, and gRPC servers with coordinated graceful shutdown.
 
 ```bash
+# Explicit local development execution (insecure mode enabled)
+SERVICEKIT_ALLOW_INSECURE=true go run ./example/
+
+# Authenticated execution mode
 SERVICEKIT_AUTH_TOKEN=secret go run ./example/
 ```
 

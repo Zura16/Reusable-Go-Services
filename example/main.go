@@ -38,12 +38,8 @@ func run() error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Default AllowInsecure for local example execution if token is empty
-	if cfg.AuthToken == "" {
-		cfg.AllowInsecure = true
-	}
-
 	// 2. Initialize Structured Logger
+
 	logger, err := observability.NewLogger(cfg.LogLevel)
 	if err != nil {
 		return fmt.Errorf("initializing logger: %w", err)
