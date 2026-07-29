@@ -2,16 +2,19 @@
 package grpcserver
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
-
 
 	"github.com/Zura16/Reusable-Go-Services/auth"
 	"github.com/Zura16/Reusable-Go-Services/config"
 	"github.com/Zura16/Reusable-Go-Services/observability"
+
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -19,6 +22,8 @@ import (
 
 type serverConfig struct {
 	reflectionEnabled bool
+	allowInsecureDev  bool
+	tlsConfig         *tls.Config
 	listener          net.Listener
 	maxRecvMsgSize    int
 	maxSendMsgSize    int
@@ -31,6 +36,20 @@ type Option func(*serverConfig)
 func WithReflection() Option {
 	return func(c *serverConfig) {
 		c.reflectionEnabled = true
+	}
+}
+
+// WithoutAuthenticationForDevelopment explicitly opts out of authentication requirements for local development.
+func WithoutAuthenticationForDevelopment() Option {
+	return func(c *serverConfig) {
+		c.allowInsecureDev = true
+	}
+}
+
+// WithTLS configures TLS transport credentials for the gRPC server.
+func WithTLS(tlsConfig *tls.Config) Option {
+	return func(c *serverConfig) {
+		c.tlsConfig = tlsConfig
 	}
 }
 
@@ -72,24 +91,30 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 		opt(sc)
 	}
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{
-		UnaryRecoveryInterceptor(logger),
-		UnaryLoggingInterceptor(logger),
-		otelgrpc.UnaryServerInterceptor(), //nolint:staticcheck // SA1019: otelgrpc legacy unary interceptor support
+	if validator == nil && !sc.allowInsecureDev {
+		return nil, errors.New("grpcserver: token validator is nil; must provide a TokenValidator or explicitly use WithoutAuthenticationForDevelopment()")
 	}
 
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		UnaryLoggingInterceptor(logger),
+	}
 	if metrics != nil {
 		unaryInterceptors = append(unaryInterceptors, UnaryMetricsInterceptor(metrics))
 	}
-
+	unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryServerInterceptor()) //nolint:staticcheck
+	unaryInterceptors = append(unaryInterceptors, UnaryRecoveryInterceptor(logger))
 	if validator != nil {
 		unaryInterceptors = append(unaryInterceptors, UnaryAuthInterceptor(validator))
 	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
-		otelgrpc.StreamServerInterceptor(), //nolint:staticcheck // SA1019: otelgrpc legacy stream interceptor support
+		StreamLoggingInterceptor(logger),
 	}
-
+	if metrics != nil {
+		streamInterceptors = append(streamInterceptors, StreamMetricsInterceptor(metrics))
+	}
+	streamInterceptors = append(streamInterceptors, otelgrpc.StreamServerInterceptor()) //nolint:staticcheck
+	streamInterceptors = append(streamInterceptors, StreamRecoveryInterceptor(logger))
 	if validator != nil {
 		streamInterceptors = append(streamInterceptors, StreamAuthInterceptor(validator))
 	}
@@ -99,6 +124,10 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 		grpc.ChainStreamInterceptor(streamInterceptors...),
 		grpc.MaxRecvMsgSize(sc.maxRecvMsgSize),
 		grpc.MaxSendMsgSize(sc.maxSendMsgSize),
+	}
+
+	if sc.tlsConfig != nil {
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(sc.tlsConfig)))
 	}
 
 	grpcSrv := grpc.NewServer(serverOpts...)

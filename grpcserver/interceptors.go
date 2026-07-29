@@ -113,6 +113,61 @@ func UnaryAuthInterceptor(v auth.TokenValidator) grpc.UnaryServerInterceptor {
 	}
 }
 
+// StreamRecoveryInterceptor catches panics in gRPC stream handlers.
+func StreamRecoveryInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("Panic in gRPC stream handler",
+					zap.String("method", info.FullMethod),
+					zap.Any("panic", r),
+					zap.ByteString("stack", debug.Stack()),
+				)
+				err = status.Errorf(codes.Internal, "Internal server error")
+			}
+		}()
+		return handler(srv, ss)
+	}
+}
+
+// StreamLoggingInterceptor logs gRPC stream execution.
+func StreamLoggingInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		start := time.Now()
+		err := handler(srv, ss)
+		duration := time.Since(start)
+		code := status.Code(err)
+
+		logger.Info("gRPC stream request",
+			zap.String("method", info.FullMethod),
+			zap.Duration("duration", duration),
+			zap.String("status_code", code.String()),
+		)
+
+		return err
+	}
+}
+
+// StreamMetricsInterceptor records gRPC stream request metrics.
+func StreamMetricsInterceptor(m *observability.Metrics) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		start := time.Now()
+		err := handler(srv, ss)
+		code := status.Code(err).String()
+
+		if m != nil {
+			if m.GRPCRequestsTotal != nil {
+				m.GRPCRequestsTotal.WithLabelValues(info.FullMethod, code).Inc()
+			}
+			if m.GRPCRequestDuration != nil {
+				m.GRPCRequestDuration.WithLabelValues(info.FullMethod).Observe(time.Since(start).Seconds())
+			}
+		}
+
+		return err
+	}
+}
+
 // StreamAuthInterceptor validates authorization token for gRPC streams.
 func StreamAuthInterceptor(v auth.TokenValidator) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {

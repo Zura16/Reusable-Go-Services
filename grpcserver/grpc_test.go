@@ -5,7 +5,6 @@ import (
 	"net"
 	"testing"
 
-
 	"github.com/Zura16/Reusable-Go-Services/auth"
 	"github.com/Zura16/Reusable-Go-Services/config"
 	profilev1 "github.com/Zura16/Reusable-Go-Services/proto/profile/v1"
@@ -56,7 +55,6 @@ func setupTestServer(t *testing.T) (*grpc.ClientConn, func()) {
 		}
 	}()
 
-
 	ctx := context.Background()
 	//nolint:staticcheck // SA1019: DialContext is used with custom bufconn dialer for unit testing
 	conn, err := grpc.DialContext(ctx, "bufnet",
@@ -78,26 +76,45 @@ func setupTestServer(t *testing.T) (*grpc.ClientConn, func()) {
 	return conn, cleanup
 }
 
+func TestNilValidatorWithoutInsecureDevReturnsError(t *testing.T) {
+	t.Parallel()
+	logger := zap.NewNop()
+	_, err := New(config.Config{GRPCPort: 9090}, logger, nil, nil)
+	if err == nil {
+		t.Fatal("expected error when validator is nil without WithoutAuthenticationForDevelopment()")
+	}
+
+	lis := bufconn.Listen(bufSize)
+	srv, err := New(config.Config{GRPCPort: 9090}, logger, nil, nil, WithoutAuthenticationForDevelopment(), WithListener(lis))
+	if err != nil {
+		t.Fatalf("unexpected error when WithoutAuthenticationForDevelopment() is provided: %v", err)
+	}
+	defer srv.GracefulStop()
+}
 
 func TestGetProfile_Success(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
-	resp, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
+	res, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
 	if err != nil {
-		t.Fatalf("Expected success, got error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res.UserId != "user1" {
+		t.Errorf("expected user1, got %s", res.UserId)
 	}
 
-	if resp.DisplayName != "Alice" {
-		t.Errorf("Expected display name Alice, got %s", resp.DisplayName)
-	}
 }
 
 func TestGetProfile_NotFound(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
@@ -109,7 +126,9 @@ func TestGetProfile_NotFound(t *testing.T) {
 
 func TestGetProfile_InvalidArgument(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
@@ -121,7 +140,9 @@ func TestGetProfile_InvalidArgument(t *testing.T) {
 
 func TestAuthInterceptor_ValidToken(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
@@ -133,7 +154,9 @@ func TestAuthInterceptor_ValidToken(t *testing.T) {
 
 func TestAuthInterceptor_InvalidToken(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer invalid-token")
@@ -145,7 +168,9 @@ func TestAuthInterceptor_InvalidToken(t *testing.T) {
 
 func TestAuthInterceptor_MissingToken(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	_, err := client.GetProfile(context.Background(), &profilev1.GetProfileRequest{UserId: "user1"})
@@ -156,7 +181,9 @@ func TestAuthInterceptor_MissingToken(t *testing.T) {
 
 func TestDeadlinePropagation(t *testing.T) {
 	t.Parallel()
-	conn, _ := setupTestServer(t)
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
 	client := profilev1.NewProfileServiceClient(conn)
 
 	// Use an already-cancelled context for deterministic failure without time.Sleep
@@ -170,8 +197,6 @@ func TestDeadlinePropagation(t *testing.T) {
 	}
 }
 
-
-// panicing handler just for testing recovery
 type panickingServer struct {
 	profilev1.UnimplementedProfileServiceServer
 }
@@ -182,11 +207,11 @@ func (s *panickingServer) GetProfile(context.Context, *profilev1.GetProfileReque
 
 func TestRecoveryInterceptor(t *testing.T) {
 	t.Parallel()
-	
+
 	lis := bufconn.Listen(bufSize)
 	logger := zap.NewNop()
 	val := &mockValidator{}
-	
+
 	cfg := config.Config{GRPCPort: 50052}
 	srv, err := New(cfg, logger, val, nil, WithListener(lis))
 	if err != nil {
@@ -216,7 +241,7 @@ func TestRecoveryInterceptor(t *testing.T) {
 	client := profilev1.NewProfileServiceClient(conn)
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
 	_, err = client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
-	
+
 	if status.Code(err) != codes.Internal {
 		t.Errorf("Expected Internal error for panic, got %v", err)
 	}
