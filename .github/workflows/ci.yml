@@ -24,6 +24,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.64.5
+          args: --enable=govet,staticcheck,unused,ineffassign
           skip-cache: true
 
   test:

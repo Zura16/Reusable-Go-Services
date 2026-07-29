@@ -11,7 +11,7 @@ generate:
 
 # Run linter
 lint:
-	golangci-lint run ./...
+	golangci-lint run --enable=govet,staticcheck,unused,ineffassign ./...
 
 # Run tests with race detector
 test:
