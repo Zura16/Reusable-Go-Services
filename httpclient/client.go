@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"time"
 
-
 	"go.uber.org/zap"
 )
 
@@ -103,7 +102,8 @@ func (c *Client) Get(ctx context.Context, url string) (*http.Response, error) {
 	return c.Do(ctx, req)
 }
 
-// Do executes an HTTP request with body-replay safety and retries.
+// Do executes an HTTP request with body-replay safety, URL query parameter redaction in logs, and automatic retries.
+// For requests with bodies, req.GetBody is used to recreate the body across retries.
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if req == nil {
 		return nil, errors.New("httpclient: request is nil")
@@ -114,31 +114,40 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		return c.httpClient.Do(req)
 	}
 
+	// Close original request body after completion if it wasn't consumed by http.Client.Do directly
+	defer func() {
+		if req.Body != nil && req.Body != http.NoBody {
+			_ = req.Body.Close()
+		}
+	}()
+
 	var attemptCount int
 	resp, err := c.retrier.Do(ctx, func() (*http.Response, error) {
 		attemptCount++
-		clonedReq, cloneErr := cloneForAttempt(req)
+		currentReq, cloneErr := prepareRequestForAttempt(req, attemptCount)
 		if cloneErr != nil {
-			c.logger.Error("failed to clone request for retry attempt",
+			c.logger.Error("failed to prepare request body for attempt",
 				zap.Int("attempt", attemptCount),
 				zap.Error(cloneErr),
 			)
 			return nil, cloneErr
 		}
 
-		res, httpErr := c.httpClient.Do(clonedReq)
+		res, httpErr := c.httpClient.Do(currentReq)
 		if httpErr != nil {
 			c.logger.Debug("HTTP request attempt failed with error",
 				zap.Int("attempt", attemptCount),
 				zap.String("method", req.Method),
-				zap.String("url", req.URL.String()),
+				zap.String("host", req.URL.Host),
+				zap.String("path", req.URL.EscapedPath()),
 				zap.Error(httpErr),
 			)
 		} else if res != nil && res.StatusCode >= 400 {
 			c.logger.Debug("HTTP request attempt returned error status",
 				zap.Int("attempt", attemptCount),
 				zap.String("method", req.Method),
-				zap.String("url", req.URL.String()),
+				zap.String("host", req.URL.Host),
+				zap.String("path", req.URL.EscapedPath()),
 				zap.Int("status", res.StatusCode),
 			)
 		}
@@ -148,21 +157,36 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 	return resp, err
 }
 
-func cloneForAttempt(req *http.Request) (*http.Request, error) {
-	cloned := req.Clone(req.Context())
+func prepareRequestForAttempt(req *http.Request, attempt int) (*http.Request, error) {
 	if req.Body == nil || req.Body == http.NoBody {
-		return cloned, nil
+		return req.Clone(req.Context()), nil
 	}
 
+	// On the first attempt, if GetBody is provided, clone with a fresh reader.
+	// If GetBody is nil on attempt 1, use original body for the initial attempt.
+	if attempt == 1 {
+		if req.GetBody != nil {
+			cloned := req.Clone(req.Context())
+			body, err := req.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("creating body for initial attempt: %w", err)
+			}
+			cloned.Body = body
+			return cloned, nil
+		}
+		return req, nil
+	}
+
+	// On subsequent retry attempts (attempt > 1), GetBody MUST be present to replay the body safely.
 	if req.GetBody == nil {
-		return nil, errors.New("request body is not replayable (GetBody is nil)")
+		return nil, errors.New("request body is not replayable for retry (GetBody is nil)")
 	}
 
+	cloned := req.Clone(req.Context())
 	body, err := req.GetBody()
 	if err != nil {
-		return nil, fmt.Errorf("recreating request body: %w", err)
+		return nil, fmt.Errorf("recreating request body for attempt %d: %w", attempt, err)
 	}
-
 	cloned.Body = body
 	return cloned, nil
 }
