@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -35,6 +36,11 @@ func run() error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// Default AllowInsecure for local example execution if token is empty
+	if cfg.AuthToken == "" {
+		cfg.AllowInsecure = true
 	}
 
 	// 2. Initialize Structured Logger
@@ -77,10 +83,23 @@ func run() error {
 		})
 	}
 
+	// 6. gRPC Options Logic
+	var grpcOpts []grpcserver.Option
+	switch {
+	case validator != nil:
+		grpcOpts = append(grpcOpts, grpcserver.WithAuthentication(validator))
+	case cfg.AllowInsecure:
+		logger.Warn("gRPC authentication disabled for development")
+		grpcOpts = append(grpcOpts, grpcserver.WithInsecureDevelopmentMode())
+		grpcOpts = append(grpcOpts, grpcserver.WithReflection())
+	default:
+		return errors.New("authentication token required unless insecure development mode is explicitly enabled (set SERVICEKIT_ALLOW_INSECURE=true)")
+	}
+
 	// Dynamic readiness state
 	var isReady int32 = 1
 
-	// 6. Initialize HTTP Server
+	// 7. Initialize HTTP Server
 	httpSrv, err := httpserver.New(cfg, logger,
 		httpserver.WithMetrics(metrics),
 		httpserver.WithReadyCheck(func() bool {
@@ -115,28 +134,21 @@ func run() error {
 		)
 	}
 
-	// 7. Initialize gRPC Server with explicit authentication choice
-	grpcOpts := []grpcserver.Option{grpcserver.WithReflection()}
-	if validator != nil {
-		grpcOpts = append(grpcOpts, grpcserver.WithAuthentication(validator))
-	} else {
-		grpcOpts = append(grpcOpts, grpcserver.WithInsecureDevelopmentMode())
-	}
-
+	// 8. Initialize gRPC Server
 	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics, grpcOpts...)
 	if err != nil {
 		return fmt.Errorf("creating grpc server: %w", err)
 	}
 	profilev1.RegisterProfileServiceServer(grpcSrv.Server(), grpcserver.NewProfileServer())
 
-	// 8. Initialize HTTP Client
+	// 9. Initialize HTTP Client
 	client := httpclient.New(
 		httpclient.WithTimeout(5*time.Second),
 		httpclient.WithLogger(logger),
 	)
 	defer client.CloseIdleConnections()
 
-	// 9. Coordinate Concurrency and Bounded Graceful Shutdown
+	// 10. Coordinate Concurrency and Bounded Graceful Shutdown
 	rootCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
 
@@ -175,7 +187,7 @@ func run() error {
 
 		var shutdownGroup errgroup.Group
 
-		// Shutdown HTTP Server (and internal metrics server if running)
+		// Shutdown HTTP Server
 		shutdownGroup.Go(func() error {
 			return httpSrv.Shutdown(shutdownCtx)
 		})

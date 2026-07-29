@@ -4,6 +4,8 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/Zura16/Reusable-Go-Services/observability"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 // Option configures the HTTP server.
@@ -122,8 +125,19 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		_, _ = w.Write([]byte("Ready"))
 	})
 
-	// Setup metrics route on main server
-	s.mux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
+	// Register /metrics ONLY on main mux if no separate metrics port is configured
+	if s.metricsAddr == "" {
+		s.mux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
+	} else {
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
+		s.metricsServer = &http.Server{
+			Addr:              s.metricsAddr,
+			Handler:           metricsMux,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      10 * time.Second,
+		}
+	}
 
 	// Build the middleware chain.
 	// Order: RequestID -> Logging -> Metrics -> Recovery -> MaxBodySize -> User Middleware -> Mux
@@ -154,31 +168,7 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		MaxHeaderBytes:    s.maxHeaderBytes,
 	}
 
-	// Initialize dedicated metrics server if MetricsPort is configured on a separate port
-	if s.metricsAddr != "" {
-		metricsMux := http.NewServeMux()
-		metricsMux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
-		s.metricsServer = &http.Server{
-			Addr:              s.metricsAddr,
-			Handler:           metricsMux,
-			ReadHeaderTimeout: 5 * time.Second,
-			WriteTimeout:      10 * time.Second,
-		}
-	}
-
 	return s, nil
-}
-
-// NewMetricsServer creates a dedicated HTTP server bound to the specified port that exposes the /metrics endpoint.
-func NewMetricsServer(port int, m *observability.Metrics) *http.Server {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", observability.Handler(m.Gatherer()))
-	return &http.Server{
-		Addr:              ":" + strconv.Itoa(port),
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      10 * time.Second,
-	}
 }
 
 // Handler returns the composed http.Handler containing all middleware and routes.
@@ -187,18 +177,44 @@ func (s *Server) Handler() http.Handler {
 }
 
 // ListenAndServe starts the HTTP server (and dedicated metrics server if configured) to begin accepting requests.
+// Creates network listeners synchronously so binding failures on either port trigger immediate error return.
 func (s *Server) ListenAndServe() error {
+	mainLis, err := net.Listen("tcp", s.httpServer.Addr)
+	if err != nil {
+		return fmt.Errorf("opening http listener on %s: %w", s.httpServer.Addr, err)
+	}
+	defer func() { _ = mainLis.Close() }()
+
+	var metricsLis net.Listener
 	if s.metricsServer != nil {
-		go func() {
-			s.logger.Info("starting dedicated metrics server", zap.String("addr", s.metricsServer.Addr))
-			if err := s.metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-				s.logger.Error("metrics server error", zap.Error(err))
-			}
-		}()
+		metricsLis, err = net.Listen("tcp", s.metricsServer.Addr)
+		if err != nil {
+			return fmt.Errorf("opening metrics listener on %s: %w", s.metricsServer.Addr, err)
+		}
+		defer func() { _ = metricsLis.Close() }()
 	}
 
-	s.logger.Info("starting http server", zap.String("addr", s.httpServer.Addr))
-	return s.httpServer.ListenAndServe()
+	var g errgroup.Group
+
+	if metricsLis != nil {
+		g.Go(func() error {
+			s.logger.Info("starting dedicated metrics server", zap.String("addr", s.metricsServer.Addr))
+			if serveErr := s.metricsServer.Serve(metricsLis); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				return fmt.Errorf("metrics server error: %w", serveErr)
+			}
+			return nil
+		})
+	}
+
+	g.Go(func() error {
+		s.logger.Info("starting http server", zap.String("addr", s.httpServer.Addr))
+		if serveErr := s.httpServer.Serve(mainLis); serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			return fmt.Errorf("http server error: %w", serveErr)
+		}
+		return nil
+	})
+
+	return g.Wait()
 }
 
 // Shutdown gracefully shuts down the HTTP server and dedicated metrics server.

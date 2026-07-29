@@ -79,7 +79,6 @@ func TestMetricsAndGatherer(t *testing.T) {
 
 	reg := prometheus.NewRegistry()
 	m, err := observability.NewMetrics(reg, reg)
-
 	if err != nil {
 		t.Fatalf("unexpected error creating metrics: %v", err)
 	}
@@ -96,3 +95,40 @@ func TestMetricsAndGatherer(t *testing.T) {
 	}
 }
 
+func TestDuplicateMetricsRegistrationReplacesCollectors(t *testing.T) {
+	t.Parallel()
+
+	reg := prometheus.NewRegistry()
+	m1, err := observability.NewMetrics(reg, reg)
+	if err != nil {
+		t.Fatalf("failed creating initial metrics: %v", err)
+	}
+
+	m2, err := observability.NewMetrics(reg, reg)
+	if err != nil {
+		t.Fatalf("failed creating duplicate metrics: %v", err)
+	}
+
+	m2.HTTPRequestsTotal.WithLabelValues("GET", "/test", "200", "2xx").Inc()
+
+	metricFamilies, err := reg.Gather()
+	if err != nil {
+		t.Fatalf("failed gathering metrics: %v", err)
+	}
+
+	var found bool
+	for _, mf := range metricFamilies {
+		if mf.GetName() == "http_requests_total" {
+			found = true
+			if len(mf.GetMetric()) == 0 || mf.GetMetric()[0].GetCounter().GetValue() != 1 {
+				t.Fatalf("expected counter value 1 on registered metric, got %v", mf.GetMetric())
+			}
+		}
+	}
+
+	if !found {
+		t.Fatal("expected http_requests_total metric family in registry")
+	}
+
+	_ = m1
+}

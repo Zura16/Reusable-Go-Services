@@ -21,6 +21,8 @@ type Config struct {
 	LogLevel string
 	// AuthToken is a secret token used for authentication.
 	AuthToken string
+	// AllowInsecure explicitly enables insecure development mode when AuthToken is empty.
+	AllowInsecure bool
 	// GRPCPort is the gRPC server port.
 	GRPCPort int
 	// MetricsPort is the port for Prometheus metrics.
@@ -30,8 +32,8 @@ type Config struct {
 // String implements fmt.Stringer to provide a safe string representation
 // of the configuration, ensuring sensitive fields like AuthToken are redacted.
 func (c Config) String() string {
-	return fmt.Sprintf("Config{Port:%d ShutdownTimeout:%s LogLevel:%s AuthToken:[REDACTED] GRPCPort:%d MetricsPort:%d}",
-		c.Port, c.ShutdownTimeout, c.LogLevel, c.GRPCPort, c.MetricsPort)
+	return fmt.Sprintf("Config{Port:%d ShutdownTimeout:%s LogLevel:%s AuthToken:[REDACTED] AllowInsecure:%t GRPCPort:%d MetricsPort:%d}",
+		c.Port, c.ShutdownTimeout, c.LogLevel, c.AllowInsecure, c.GRPCPort, c.MetricsPort)
 }
 
 // Load reads the configuration from environment variables, applies defaults,
@@ -83,6 +85,14 @@ func Load() (Config, error) {
 
 	if at := os.Getenv("SERVICEKIT_AUTH_TOKEN"); at != "" {
 		c.AuthToken = at
+	}
+
+	if ai := os.Getenv("SERVICEKIT_ALLOW_INSECURE"); ai != "" {
+		val, err := strconv.ParseBool(ai)
+		if err != nil {
+			return c, fmt.Errorf("invalid allow_insecure %q: must be a boolean", ai)
+		}
+		c.AllowInsecure = val
 	}
 
 	// Validation

@@ -86,16 +86,17 @@ func TestNilValidatorWithoutInsecureDevReturnsError(t *testing.T) {
 	logger := zap.NewNop()
 	_, err := New(config.Config{GRPCPort: 9090}, logger, nil, nil)
 	if err == nil {
-		t.Fatal("expected error when validator is nil without WithoutAuthenticationForDevelopment()")
+		t.Fatal("expected error when validator is nil without WithInsecureDevelopmentMode()")
 	}
 
 	lis := bufconn.Listen(bufSize)
-	srv, err := New(config.Config{GRPCPort: 9090}, logger, nil, nil, WithoutAuthenticationForDevelopment(), WithListener(lis))
+	srv, err := New(config.Config{GRPCPort: 9090}, logger, nil, nil, WithInsecureDevelopmentMode(), WithListener(lis))
 	if err != nil {
-		t.Fatalf("unexpected error when WithoutAuthenticationForDevelopment() is provided: %v", err)
+		t.Fatalf("unexpected error when WithInsecureDevelopmentMode() is provided: %v", err)
 	}
 	defer srv.GracefulStop()
 }
+
 
 func TestGetProfile_Success(t *testing.T) {
 	t.Parallel()

@@ -30,6 +30,7 @@ type Metrics struct {
 
 // NewMetrics creates and registers all standard collectors for the service cleanly.
 // If reg is nil, it uses prometheus.DefaultRegisterer. If gatherer is nil, it uses prometheus.DefaultGatherer.
+// If collectors are already registered on reg, NewMetrics replaces struct fields with the existing registered collectors.
 func NewMetrics(reg prometheus.Registerer, gatherer prometheus.Gatherer) (*Metrics, error) {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
@@ -77,20 +78,59 @@ func NewMetrics(reg prometheus.Registerer, gatherer prometheus.Gatherer) (*Metri
 		),
 	}
 
-	collectors := []prometheus.Collector{
-		m.HTTPRequestsTotal,
-		m.HTTPRequestDuration,
-		m.GRPCRequestsTotal,
-		m.GRPCRequestDuration,
+	// 1. Register HTTPRequestsTotal
+	if err := reg.Register(m.HTTPRequestsTotal); err != nil {
+		var alreadyReg prometheus.AlreadyRegisteredError
+		if errors.As(err, &alreadyReg) {
+			if existing, ok := alreadyReg.ExistingCollector.(*prometheus.CounterVec); ok {
+				m.HTTPRequestsTotal = existing
+			} else {
+				return nil, fmt.Errorf("unexpected collector type for HTTPRequestsTotal: %T", alreadyReg.ExistingCollector)
+			}
+		} else {
+			return nil, fmt.Errorf("registering HTTPRequestsTotal: %w", err)
+		}
 	}
 
-	for _, collector := range collectors {
-		if err := reg.Register(collector); err != nil {
-			var alreadyReg prometheus.AlreadyRegisteredError
-			if errors.As(err, &alreadyReg) {
-				continue
+	// 2. Register HTTPRequestDuration
+	if err := reg.Register(m.HTTPRequestDuration); err != nil {
+		var alreadyReg prometheus.AlreadyRegisteredError
+		if errors.As(err, &alreadyReg) {
+			if existing, ok := alreadyReg.ExistingCollector.(*prometheus.HistogramVec); ok {
+				m.HTTPRequestDuration = existing
+			} else {
+				return nil, fmt.Errorf("unexpected collector type for HTTPRequestDuration: %T", alreadyReg.ExistingCollector)
 			}
-			return nil, fmt.Errorf("registering collector: %w", err)
+		} else {
+			return nil, fmt.Errorf("registering HTTPRequestDuration: %w", err)
+		}
+	}
+
+	// 3. Register GRPCRequestsTotal
+	if err := reg.Register(m.GRPCRequestsTotal); err != nil {
+		var alreadyReg prometheus.AlreadyRegisteredError
+		if errors.As(err, &alreadyReg) {
+			if existing, ok := alreadyReg.ExistingCollector.(*prometheus.CounterVec); ok {
+				m.GRPCRequestsTotal = existing
+			} else {
+				return nil, fmt.Errorf("unexpected collector type for GRPCRequestsTotal: %T", alreadyReg.ExistingCollector)
+			}
+		} else {
+			return nil, fmt.Errorf("registering GRPCRequestsTotal: %w", err)
+		}
+	}
+
+	// 4. Register GRPCRequestDuration
+	if err := reg.Register(m.GRPCRequestDuration); err != nil {
+		var alreadyReg prometheus.AlreadyRegisteredError
+		if errors.As(err, &alreadyReg) {
+			if existing, ok := alreadyReg.ExistingCollector.(*prometheus.HistogramVec); ok {
+				m.GRPCRequestDuration = existing
+			} else {
+				return nil, fmt.Errorf("unexpected collector type for GRPCRequestDuration: %T", alreadyReg.ExistingCollector)
+			}
+		} else {
+			return nil, fmt.Errorf("registering GRPCRequestDuration: %w", err)
 		}
 	}
 
