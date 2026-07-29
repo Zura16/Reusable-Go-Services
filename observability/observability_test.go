@@ -78,7 +78,10 @@ func TestMetricsAndGatherer(t *testing.T) {
 	t.Parallel()
 
 	reg := prometheus.NewRegistry()
-	m := observability.NewMetrics(reg)
+	m, err := observability.NewMetrics(reg)
+	if err != nil {
+		t.Fatalf("unexpected error creating metrics: %v", err)
+	}
 	if m == nil {
 		t.Fatal("expected non-nil metrics")
 	}
@@ -91,3 +94,4 @@ func TestMetricsAndGatherer(t *testing.T) {
 		t.Fatal("expected non-nil handler")
 	}
 }
+

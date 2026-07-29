@@ -74,7 +74,11 @@ func TestMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	logger := zap.NewNop()
 	reg := prometheus.NewRegistry()
-	metrics := observability.NewMetrics(reg)
+	metrics, err := observability.NewMetrics(reg)
+	if err != nil {
+		t.Fatalf("failed to create metrics: %v", err)
+	}
+
 
 	server, err := httpserver.New(config.Config{Port: 8080}, logger, httpserver.WithMetrics(metrics))
 	if err != nil {
@@ -142,7 +146,11 @@ func TestPanicRecoveryAndLogging(t *testing.T) {
 	core, logs := observer.New(zapcore.InfoLevel)
 	logger := zap.New(core)
 	reg := prometheus.NewRegistry()
-	metrics := observability.NewMetrics(reg)
+	metrics, err := observability.NewMetrics(reg)
+	if err != nil {
+		t.Fatalf("failed to create metrics: %v", err)
+	}
+
 
 	server, err := httpserver.New(config.Config{Port: 8080}, logger, httpserver.WithMetrics(metrics))
 	if err != nil {

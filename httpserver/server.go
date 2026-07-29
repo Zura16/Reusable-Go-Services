@@ -120,7 +120,6 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 
 	// Build the middleware chain.
 	// Order: RequestID -> Logging -> Metrics -> Recovery -> MaxBodySize -> User Middleware -> Mux
-	// Placing Recovery INSIDE Logging & Metrics ensures panics caught by Recovery still log structured JSON and record Prometheus 500 status!
 	var mwChain []func(http.Handler) http.Handler
 	mwChain = append(mwChain, RequestID())
 	mwChain = append(mwChain, Logging(logger))
@@ -149,6 +148,19 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 	}
 
 	return s, nil
+}
+
+// NewMetricsServer creates a dedicated HTTP server bound to the specified port that exposes the /metrics endpoint.
+func NewMetricsServer(port int, m *observability.Metrics) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", observability.Handler(m.Gatherer()))
+
+	return &http.Server{
+		Addr:              ":" + strconv.Itoa(port),
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+	}
 }
 
 // Handler returns the composed http.Handler containing all middleware and routes.

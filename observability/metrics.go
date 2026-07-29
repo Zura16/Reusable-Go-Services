@@ -2,6 +2,8 @@
 package observability
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,9 +28,9 @@ type Metrics struct {
 	GRPCRequestDuration *prometheus.HistogramVec
 }
 
-// NewMetrics creates and registers all standard collectors for the service.
+// NewMetrics creates and registers all standard collectors for the service without panicking.
 // If reg is nil, it uses prometheus.DefaultRegisterer and prometheus.DefaultGatherer.
-func NewMetrics(reg prometheus.Registerer) *Metrics {
+func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
 	}
@@ -74,12 +76,24 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 		),
 	}
 
-	reg.MustRegister(m.HTTPRequestsTotal)
-	reg.MustRegister(m.HTTPRequestDuration)
-	reg.MustRegister(m.GRPCRequestsTotal)
-	reg.MustRegister(m.GRPCRequestDuration)
+	collectors := []prometheus.Collector{
+		m.HTTPRequestsTotal,
+		m.HTTPRequestDuration,
+		m.GRPCRequestsTotal,
+		m.GRPCRequestDuration,
+	}
 
-	return m
+	for _, collector := range collectors {
+		if err := reg.Register(collector); err != nil {
+			var alreadyReg prometheus.AlreadyRegisteredError
+			if errors.As(err, &alreadyReg) {
+				continue
+			}
+			return nil, fmt.Errorf("registering collector: %w", err)
+		}
+	}
+
+	return m, nil
 }
 
 // Gatherer returns the prometheus.Gatherer associated with these metrics.
