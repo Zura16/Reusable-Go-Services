@@ -1,21 +1,17 @@
-# ServiceKit 
+# ServiceKit
 
 [![CI](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml/badge.svg)](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/ci.yml)
 [![GitHub Pages Deploy](https://github.com/Zura16/Reusable-Go-Services/actions/workflows/deploy.yml/badge.svg)](https://zura16.github.io/Reusable-Go-Services/)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Zura16/Reusable-Go-Services.svg)](https://pkg.go.dev/github.com/Zura16/Reusable-Go-Services)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Zura16/Reusable-Go-Services)](https://goreportcard.com/report/github.com/Zura16/Reusable-Go-Services)
 
-A production-grade, reusable Go foundation for building secure, observable, and high-performance HTTP and gRPC microservices with sensible defaults.
-
-ServiceKit provides typed configuration, HTTP and gRPC server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client with exponential backoff — all behind a small, composable API.
+A reusable Go library providing core patterns for HTTP and gRPC microservices: typed configuration, server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client with exponential backoff and jitter.
 
 🌐 **Live Interactive Playground**: [https://zura16.github.io/Reusable-Go-Services/](https://zura16.github.io/Reusable-Go-Services/)
 
 <img width="1256" height="781" alt="Screenshot 2026-07-28 at 3 10 44 PM" src="https://github.com/user-attachments/assets/7475ab2a-80b5-42c2-b69e-9ed7eed7affb" />
 
-
 <img width="1251" height="776" alt="Screenshot 2026-07-28 at 3 10 59 PM" src="https://github.com/user-attachments/assets/cb956f67-e064-439d-9b0a-58d06c7b5b34" />
-
 
 <img width="1244" height="733" alt="Screenshot 2026-07-28 at 3 11 10 PM" src="https://github.com/user-attachments/assets/c24437bd-7092-4fbb-a582-3581bdf621e5" />
 
@@ -26,25 +22,23 @@ ServiceKit provides typed configuration, HTTP and gRPC server setup, authenticat
 ### Install
 
 ```bash
-go get github.com/Zura16/Reusable-Go-Services@latest
-
+go get github.com/Zura16/Reusable-Go-Services@v0.1.0
 ```
 
 ### Prerequisites
 
-- Go 1.22+
+- **Go 1.23+**
 - (Optional) `protoc` with `protoc-gen-go` and `protoc-gen-go-grpc` for regenerating proto code
 
 ```bash
 # Install development tools (protoc plugins + linter)
 make tools
 
-# Generate protobuf Go code (if you modify profile.proto)
+# Generate protobuf Go code
 make generate
 ```
 
 ### Configure
-
 
 Set environment variables (all optional — sensible defaults are provided):
 
@@ -74,43 +68,40 @@ import (
 )
 
 func main() {
-	// Load and validate configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Initialize structured logger
 	logger, err := observability.NewLogger(cfg.LogLevel)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer logger.Sync()
 
-	// Create and start HTTP server with defaults
 	srv, err := httpserver.New(cfg, logger)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv.HandleFunc("GET /hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, ServiceKit!"))
+		_, _ = w.Write([]byte("Hello, ServiceKit!"))
 	})
 
-	if err := srv.ListenAndServe(); err != nil {
-		logger.Fatal("server stopped", zap.Error(err))
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Fatal("server stopped with error", zap.Error(err))
 	}
 }
 ```
 
-Out of the box you get:
-- `GET /healthz` — liveness probe (always `200 OK`)
-- `GET /readyz` — readiness probe (`200` or `503`)
+Built-in features:
+- `GET /healthz` — liveness probe (returns `200 OK`)
+- `GET /readyz` — readiness probe (returns `200` or `503`)
 - `GET /metrics` — Prometheus scrape endpoint
-- Structured JSON logging with request IDs
-- Panic recovery
-- Request size limits
-- Graceful shutdown on `SIGINT`/`SIGTERM`
+- Structured JSON logging with sanitized request IDs
+- Panic recovery with JSON error logging and Prometheus counter increments
+- Request size limits (`http.MaxBytesReader`)
+- Graceful shutdown coordination via context deadlines
 
 ---
 
@@ -144,26 +135,15 @@ graph TB
 
 ## Packages
 
-
-
 ### `config` — Typed Configuration
 
-Loads from environment variables with safe defaults and validation. Secret values (like `AuthToken`) are redacted in `String()` output.
+Loads configuration from environment variables with safe defaults and validation. Secret values (like `AuthToken`) are redacted in `String()` stringifiers.
 
 ```go
 cfg, err := config.Load()
 fmt.Println(cfg)
 // Config{Port:8080 ShutdownTimeout:15s LogLevel:info AuthToken:[REDACTED] GRPCPort:9090 MetricsPort:9091}
 ```
-
-| Variable | Default | Description |
-|---|---|---|
-| `SERVICEKIT_PORT` | `8080` | HTTP server port |
-| `SERVICEKIT_GRPC_PORT` | `9090` | gRPC server port |
-| `SERVICEKIT_METRICS_PORT` | `9091` | Prometheus metrics port |
-| `SERVICEKIT_SHUTDOWN_TIMEOUT` | `15s` | Graceful shutdown timeout |
-| `SERVICEKIT_LOG_LEVEL` | `info` | Minimum log level |
-| `SERVICEKIT_AUTH_TOKEN` | *(empty)* | Bearer token for auth |
 
 ### `observability` — Logging, Metrics & Tracing
 
@@ -174,14 +154,13 @@ logger, _ := observability.NewLogger("info")
 logger.Info("request handled", zap.String("method", "GET"), zap.Int("status", 200))
 ```
 
-**Prometheus metrics** with standard HTTP and gRPC collectors:
+**Prometheus metrics** without panics:
 
 ```go
-metrics := observability.NewMetrics(nil) // uses default registerer
-// metrics.HTTPRequestsTotal, metrics.HTTPRequestDuration, etc.
+metrics, err := observability.NewMetrics(nil) // uses default registerer & gatherer
 ```
 
-**OpenTelemetry tracing** with stdout exporter for development:
+**OpenTelemetry tracing** with W3C TraceContext propagation:
 
 ```go
 tp, _ := observability.InitTracer("my-service")
@@ -190,20 +169,16 @@ defer observability.ShutdownTracer(context.Background(), tp)
 
 ### `auth` — Authentication & Authorization
 
-Constant-time token-based authentication with a clean interface:
+Fail-closed token-based authentication with `ParseBearer(header)`:
 
 ```go
-// Use StaticValidator for simple token validation
-validator := auth.NewStaticValidator("my-secret-token")
-
-// Or MockValidator for testing
-validator := &auth.MockValidator{
-    Identity: auth.Identity{Subject: "user-1", Roles: []string{"admin"}},
-    Err:      nil,
-}
+validator := auth.NewStaticValidator("my-secret-token", auth.Identity{
+    Subject: "admin-user",
+    Roles:   []string{"admin"},
+})
 
 // HTTP middleware
-mux.Handle("/api/", auth.HTTPMiddleware(validator)(apiHandler))
+mux.Handle("/api/v1/protected", auth.HTTPMiddleware(validator)(protectedHandler))
 
 // Role-based authorization
 mux.Handle("/admin/", auth.RequireRole("admin")(adminHandler))
@@ -211,66 +186,69 @@ mux.Handle("/admin/", auth.RequireRole("admin")(adminHandler))
 
 ### `httpserver` — HTTP Server
 
-Production-ready HTTP server with middleware chain:
+HTTP server with structured middleware:
 
 ```go
 srv, _ := httpserver.New(cfg, logger,
     httpserver.WithMetrics(metrics),
     httpserver.WithReadyCheck(func() bool { return dbReady }),
-    httpserver.WithMaxBodySize(5 << 20), // 5MB
+    httpserver.WithMaxBodySize(5 << 20), // 5MB limit
 )
 
-srv.Handle("POST /api/data", auth.HTTPMiddleware(validator)(dataHandler))
-
-srv.ListenAndServe() // blocks until SIGINT/SIGTERM
+// Optional dedicated metrics server bound to MetricsPort
+metricsSrv := httpserver.NewMetricsServer(cfg.MetricsPort, metrics)
 ```
 
-Default middleware chain (applied automatically):
-1. **Recovery** — catches panics, returns 500
-2. **Request ID** — generates/propagates `X-Request-ID`
-3. **Logging** — structured request logging (headers redacted)
-4. **Metrics** — Prometheus counters and histograms
-5. **Body limit** — `MaxBytesReader` (default 1MB)
+Default HTTP middleware chain order:
+1. **Request ID** (`RequestID`) — generates or validates sanitized `X-Request-ID`
+2. **Logging** (`Logging`) — structured JSON request logging with header redaction (`Authorization`, `Cookie`, `Set-Cookie`)
+3. **Metrics** (`Metrics`) — Prometheus request counters using Go 1.23 matched route patterns (`r.Pattern`) and histograms
+4. **Recovery** (`Recovery`) — catches panics, sets status 500, logged in JSON & recorded in Prometheus
+5. **Body limit** (`MaxBodySize`) — enforces request body limits via `http.MaxBytesReader`
 
 ### `httpclient` — HTTP Client
 
-Context-aware HTTP client with retries:
+Context-aware HTTP client with query parameter logging redaction and body-replay safety:
 
 ```go
 client := httpclient.New(
     httpclient.WithTimeout(10 * time.Second),
     httpclient.WithLogger(logger),
 )
+defer client.CloseIdleConnections()
 
 resp, err := client.Get(ctx, "https://api.example.com/data")
 ```
 
 Retry behavior:
-- **Exponential backoff** with configurable jitter
-- **Safe by default**: only retries idempotent methods (GET, HEAD, PUT, DELETE, OPTIONS)
-- **Retryable errors**: network errors, HTTP 429/502/503/504
-- **Respects `Retry-After`** header on 429 responses
-- **Context-aware**: cancelled contexts abort retries immediately
+- **Exponential backoff** with jitter and `Retry-After` header parsing (numeric seconds and RFC1123 date formats)
+- **Query parameter redaction**: logs host and path without raw query strings
+- **Safe by default**: only retries idempotent methods unless `RetryUnsafe` is enabled and `req.GetBody` is present
 
 ### `grpcserver` — gRPC Server
 
-gRPC server with interceptor chain:
+gRPC server with complete unary and stream interceptor chains:
 
 ```go
-grpcSrv, _ := grpcserver.New(cfg, logger, validator, metrics)
+// Explicitly opt in to auth or pass WithoutAuthenticationForDevelopment() for local testing
+grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics,
+    grpcserver.WithReflection(),
+    grpcserver.WithTLS(tlsConfig), // optional TLS configuration
+)
 
 profilev1.RegisterProfileServiceServer(grpcSrv.Server(), grpcserver.NewProfileServer())
-
-grpcSrv.Serve() // blocks until stopped
 ```
 
-Interceptor chain: Recovery → Logging → Metrics → Tracing → Auth
+Interceptor chain order (unary and streaming):
+1. **Logging** → 2. **Metrics** → 3. **OpenTelemetry** → 4. **Recovery** → 5. **Auth**
+
+> **Note on Plaintext/TLS**: By default, servers listen in plaintext TCP mode, suitable when deployed behind a service mesh (Istio, Linkerd) or an ingress controller (Envoy, NGINX). For direct edge exposure, pass `WithTLS(tlsConfig)`.
 
 ---
 
 ## Example
 
-See [`example/main.go`](example/main.go) for a complete, runnable example that wires up both HTTP and gRPC servers with all observability and auth features.
+See [`example/main.go`](example/main.go) for a complete, runnable service wiring up HTTP, dedicated metrics server, and gRPC servers with coordinated graceful shutdown.
 
 ```bash
 SERVICEKIT_AUTH_TOKEN=secret go run ./example/
@@ -280,15 +258,15 @@ SERVICEKIT_AUTH_TOKEN=secret go run ./example/
 
 ## Benchmarks & Performance
 
-Run performance microbenchmarks and memory allocation metrics:
+Run performance microbenchmarks:
 
 ```bash
 make bench
 ```
 
 **Results (Apple M2)**:
-- `auth.StaticValidator`: **7.39 ns/op** with **0 allocations (0 B/op, 0 allocs/op)** — constant-time zero-allocation security validation!
-- `auth.HTTPMiddleware`: **148 ns/op** (> 6.7M requests/sec per CPU core).
+- `auth.StaticValidator`: **32 ns/op** with constant-time equality check and slice copying.
+- `auth.HTTPMiddleware`: **207 ns/op** in an isolated middleware benchmark on an Apple M2.
 
 ---
 
@@ -298,7 +276,7 @@ make bench
 # Run all tests with race detector
 make test
 
-# View code coverage
+# View test coverage report
 make coverage
 
 # Run benchmarks
@@ -306,30 +284,6 @@ make bench
 ```
 
 ---
-
-## Development & CI
-
-### Prerequisites
-
-- Go 1.22+
-
-### Linting & Build
-
-```bash
-make lint
-make build
-```
-
-### CI / CD Workflows
-
-- [CI Pipeline](.github/workflows/ci.yml) — Runs linting, race-detector unit tests, and compilation on every commit.
-- [GitHub Pages Deployment](.github/workflows/deploy.yml) — Automated build & deployment of the React interactive playground to GitHub Pages.
-
----
-
-## Versioning
-
-This project follows [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## License
 
