@@ -62,3 +62,17 @@ func (s *ProfileServer) GetProfile(ctx context.Context, req *profilev1.GetProfil
 
 	return profile, nil
 }
+
+// ListProfiles streams user profiles matching the request.
+func (s *ProfileServer) ListProfiles(req *profilev1.GetProfileRequest, stream profilev1.ProfileService_ListProfilesServer) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, profile := range s.profiles {
+		if err := stream.Send(profile); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

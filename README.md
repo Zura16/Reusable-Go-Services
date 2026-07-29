@@ -5,7 +5,9 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Zura16/Reusable-Go-Services.svg)](https://pkg.go.dev/github.com/Zura16/Reusable-Go-Services)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Zura16/Reusable-Go-Services)](https://goreportcard.com/report/github.com/Zura16/Reusable-Go-Services)
 
-A reusable Go library providing core patterns for HTTP and gRPC microservices: typed configuration, server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client with exponential backoff and jitter.
+A reusable Go service foundation for practicing secure, observable HTTP and gRPC service patterns.
+
+ServiceKit provides typed configuration, HTTP and gRPC server setup, authentication hooks, structured logging, OpenTelemetry tracing, Prometheus metrics, graceful shutdown, and a context-aware HTTP client with exponential backoff and jitter.
 
 🌐 **Live Interactive Playground**: [https://zura16.github.io/Reusable-Go-Services/](https://zura16.github.io/Reusable-Go-Services/)
 
@@ -97,7 +99,7 @@ func main() {
 Built-in features:
 - `GET /healthz` — liveness probe (returns `200 OK`)
 - `GET /readyz` — readiness probe (returns `200` or `503`)
-- `GET /metrics` — Prometheus scrape endpoint
+- `GET /metrics` — Prometheus scrape endpoint (served on main server or dedicated `MetricsPort` if configured)
 - Structured JSON logging with sanitized request IDs
 - Panic recovery with JSON error logging and Prometheus counter increments
 - Request size limits (`http.MaxBytesReader`)
@@ -154,10 +156,10 @@ logger, _ := observability.NewLogger("info")
 logger.Info("request handled", zap.String("method", "GET"), zap.Int("status", 200))
 ```
 
-**Prometheus metrics** without panics:
+**Prometheus metrics** returning registration errors without panicking:
 
 ```go
-metrics, err := observability.NewMetrics(nil) // uses default registerer & gatherer
+metrics, err := observability.NewMetrics(nil, nil) // uses default registerer & gatherer
 ```
 
 **OpenTelemetry tracing** with W3C TraceContext propagation:
@@ -195,8 +197,7 @@ srv, _ := httpserver.New(cfg, logger,
     httpserver.WithMaxBodySize(5 << 20), // 5MB limit
 )
 
-// Optional dedicated metrics server bound to MetricsPort
-metricsSrv := httpserver.NewMetricsServer(cfg.MetricsPort, metrics)
+// Automatic dedicated metrics server started on MetricsPort if configured on a separate port
 ```
 
 Default HTTP middleware chain order:
@@ -222,18 +223,18 @@ resp, err := client.Get(ctx, "https://api.example.com/data")
 
 Retry behavior:
 - **Exponential backoff** with jitter and `Retry-After` header parsing (numeric seconds and RFC1123 date formats)
-- **Query parameter redaction**: logs host and path without raw query strings
-- **Safe by default**: only retries idempotent methods unless `RetryUnsafe` is enabled and `req.GetBody` is present
+- **URL logging redaction**: logs `host` and `path` without raw query strings to prevent secret leakage
+- **Safe by default**: initial attempt uses original body; retry attempts require `GetBody` to replay safely
 
 ### `grpcserver` — gRPC Server
 
 gRPC server with complete unary and stream interceptor chains:
 
 ```go
-// Explicitly opt in to auth or pass WithoutAuthenticationForDevelopment() for local testing
 grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics,
     grpcserver.WithReflection(),
-    grpcserver.WithTLS(tlsConfig), // optional TLS configuration
+    grpcserver.WithAuthentication(validator), // or grpcserver.WithInsecureDevelopmentMode()
+    grpcserver.WithTLS(tlsConfig),           // optional TLS configuration
 )
 
 profilev1.RegisterProfileServiceServer(grpcSrv.Server(), grpcserver.NewProfileServer())
@@ -266,7 +267,7 @@ make bench
 
 **Results (Apple M2)**:
 - `auth.StaticValidator`: **32 ns/op** with constant-time equality check and slice copying.
-- `auth.HTTPMiddleware`: **207 ns/op** in an isolated middleware benchmark on an Apple M2.
+- `auth.HTTPMiddleware`: **Authentication middleware measured 148 ns/op in an isolated microbenchmark on an Apple M2.**
 
 ---
 

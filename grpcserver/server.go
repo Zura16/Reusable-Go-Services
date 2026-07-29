@@ -21,6 +21,7 @@ import (
 )
 
 type serverConfig struct {
+	validator         auth.TokenValidator
 	reflectionEnabled bool
 	allowInsecureDev  bool
 	tlsConfig         *tls.Config
@@ -32,10 +33,17 @@ type serverConfig struct {
 // Option configures the gRPC server.
 type Option func(*serverConfig)
 
-// WithReflection enables gRPC reflection on the server.
-func WithReflection() Option {
+// WithAuthentication configures the TokenValidator for gRPC authentication.
+func WithAuthentication(v auth.TokenValidator) Option {
 	return func(c *serverConfig) {
-		c.reflectionEnabled = true
+		c.validator = v
+	}
+}
+
+// WithInsecureDevelopmentMode explicitly opts out of authentication requirements for local development.
+func WithInsecureDevelopmentMode() Option {
+	return func(c *serverConfig) {
+		c.allowInsecureDev = true
 	}
 }
 
@@ -43,6 +51,13 @@ func WithReflection() Option {
 func WithoutAuthenticationForDevelopment() Option {
 	return func(c *serverConfig) {
 		c.allowInsecureDev = true
+	}
+}
+
+// WithReflection enables gRPC reflection on the server.
+func WithReflection() Option {
+	return func(c *serverConfig) {
+		c.reflectionEnabled = true
 	}
 }
 
@@ -83,6 +98,7 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 	}
 
 	sc := &serverConfig{
+		validator:      validator,
 		maxRecvMsgSize: 4 << 20, // 4MB default
 		maxSendMsgSize: 4 << 20, // 4MB default
 	}
@@ -91,10 +107,11 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 		opt(sc)
 	}
 
-	if validator == nil && !sc.allowInsecureDev {
-		return nil, errors.New("grpcserver: token validator is nil; must provide a TokenValidator or explicitly use WithoutAuthenticationForDevelopment()")
+	if sc.validator == nil && !sc.allowInsecureDev {
+		return nil, errors.New("grpcserver: authentication is required; pass a TokenValidator via WithAuthentication or explicitly call WithInsecureDevelopmentMode()")
 	}
 
+	// Interceptor chain order: Logging -> Metrics -> Tracing -> Recovery -> Auth -> Handler
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		UnaryLoggingInterceptor(logger),
 	}
@@ -103,8 +120,8 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 	}
 	unaryInterceptors = append(unaryInterceptors, otelgrpc.UnaryServerInterceptor()) //nolint:staticcheck
 	unaryInterceptors = append(unaryInterceptors, UnaryRecoveryInterceptor(logger))
-	if validator != nil {
-		unaryInterceptors = append(unaryInterceptors, UnaryAuthInterceptor(validator))
+	if sc.validator != nil {
+		unaryInterceptors = append(unaryInterceptors, UnaryAuthInterceptor(sc.validator))
 	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
@@ -115,8 +132,8 @@ func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, m
 	}
 	streamInterceptors = append(streamInterceptors, otelgrpc.StreamServerInterceptor()) //nolint:staticcheck
 	streamInterceptors = append(streamInterceptors, StreamRecoveryInterceptor(logger))
-	if validator != nil {
-		streamInterceptors = append(streamInterceptors, StreamAuthInterceptor(validator))
+	if sc.validator != nil {
+		streamInterceptors = append(streamInterceptors, StreamAuthInterceptor(sc.validator))
 	}
 
 	serverOpts := []grpc.ServerOption{

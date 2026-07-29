@@ -142,10 +142,11 @@ const file_proto_profile_v1_profile_proto_rawDesc = "" +
 	"\x12GetProfileResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email2]\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email2\xae\x01\n" +
 	"\x0eProfileService\x12K\n" +
 	"\n" +
-	"GetProfile\x12\x1d.profile.v1.GetProfileRequest\x1a\x1e.profile.v1.GetProfileResponseBCZAgithub.com/Zura16/Reusable-Go-Services/proto/profile/v1;profilev1b\x06proto3"
+	"GetProfile\x12\x1d.profile.v1.GetProfileRequest\x1a\x1e.profile.v1.GetProfileResponse\x12O\n" +
+	"\fListProfiles\x12\x1d.profile.v1.GetProfileRequest\x1a\x1e.profile.v1.GetProfileResponse0\x01BCZAgithub.com/Zura16/Reusable-Go-Services/proto/profile/v1;profilev1b\x06proto3"
 
 var (
 	file_proto_profile_v1_profile_proto_rawDescOnce sync.Once
@@ -166,9 +167,11 @@ var file_proto_profile_v1_profile_proto_goTypes = []any{
 }
 var file_proto_profile_v1_profile_proto_depIdxs = []int32{
 	0, // 0: profile.v1.ProfileService.GetProfile:input_type -> profile.v1.GetProfileRequest
-	1, // 1: profile.v1.ProfileService.GetProfile:output_type -> profile.v1.GetProfileResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 1: profile.v1.ProfileService.ListProfiles:input_type -> profile.v1.GetProfileRequest
+	1, // 2: profile.v1.ProfileService.GetProfile:output_type -> profile.v1.GetProfileResponse
+	1, // 3: profile.v1.ProfileService.ListProfiles:output_type -> profile.v1.GetProfileResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

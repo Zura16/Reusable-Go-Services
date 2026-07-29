@@ -63,16 +63,21 @@ func run() error {
 
 	// 4. Initialize Prometheus Metrics cleanly
 	reg := prometheus.NewRegistry()
-	metrics, err := observability.NewMetrics(reg)
+	metrics, err := observability.NewMetrics(reg, reg)
 	if err != nil {
 		return fmt.Errorf("initializing metrics: %w", err)
 	}
 
-	// 5. Initialize Authentication Validator
+	// 5. Initialize Authentication Validator (defaults to dev token if environment variable is empty)
 	var validator auth.TokenValidator
 	if cfg.AuthToken != "" {
 		validator = auth.NewStaticValidator(cfg.AuthToken, auth.Identity{
 			Subject: "example-admin",
+			Roles:   []string{"admin", "user"},
+		})
+	} else {
+		validator = auth.NewStaticValidator("dev-token", auth.Identity{
+			Subject: "dev-user",
 			Roles:   []string{"admin", "user"},
 		})
 	}
@@ -91,7 +96,7 @@ func run() error {
 		return fmt.Errorf("creating http server: %w", err)
 	}
 
-	// Protected HTTP handler
+	// Protected HTTP handler wrapped explicitly with auth middleware
 	protectedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := auth.IdentityFromContext(r.Context())
 		if !ok {
@@ -101,66 +106,44 @@ func run() error {
 		_, _ = fmt.Fprintf(w, "Hello %s! Roles: %v\n", id.Subject, id.Roles)
 	})
 
-	if validator != nil {
-		httpSrv.Handle("GET /api/v1/protected", auth.HTTPMiddleware(validator)(protectedHandler))
-		httpSrv.Handle("GET /api/v1/admin", auth.HTTPMiddleware(validator)(
-			auth.RequireRole("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, _ = w.Write([]byte("Welcome Admin!"))
-			})),
-		))
-	} else {
-		httpSrv.Handle("GET /api/v1/protected", protectedHandler)
-	}
+	httpSrv.Handle("GET /api/v1/protected", auth.HTTPMiddleware(validator)(protectedHandler))
 
-	// 7. Initialize Dedicated Metrics Server if configured on a separate port
-	var metricsSrv *http.Server
-	if cfg.MetricsPort > 0 && cfg.MetricsPort != cfg.Port {
-		metricsSrv = httpserver.NewMetricsServer(cfg.MetricsPort, metrics)
-	}
+	httpSrv.Handle("GET /api/v1/admin", auth.HTTPMiddleware(validator)(
+		auth.RequireRole("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte("Welcome Admin!"))
+		})),
+	))
 
-
-	// 8. Initialize gRPC Server with explicit auth mode
-	grpcOpts := []grpcserver.Option{grpcserver.WithReflection()}
-	if validator == nil {
-		grpcOpts = append(grpcOpts, grpcserver.WithoutAuthenticationForDevelopment())
-	}
-	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics, grpcOpts...)
+	// 7. Initialize gRPC Server with explicit authentication mode
+	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics,
+		grpcserver.WithReflection(),
+		grpcserver.WithAuthentication(validator),
+	)
 	if err != nil {
 		return fmt.Errorf("creating grpc server: %w", err)
 	}
 	profilev1.RegisterProfileServiceServer(grpcSrv.Server(), grpcserver.NewProfileServer())
 
-	// 9. Initialize HTTP Client
+	// 8. Initialize HTTP Client
 	client := httpclient.New(
 		httpclient.WithTimeout(5*time.Second),
 		httpclient.WithLogger(logger),
 	)
 	defer client.CloseIdleConnections()
 
-	// 10. Coordinate Concurrency and Bounded Graceful Shutdown
+	// 9. Coordinate Concurrency and Bounded Graceful Shutdown
 	rootCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignal()
 
 	g, gCtx := errgroup.WithContext(rootCtx)
 
-	// Start HTTP Server
+	// Start HTTP Server (and automatic dedicated metrics server on MetricsPort if configured)
 	g.Go(func() error {
 		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("http server error: %w", err)
 		}
 		return nil
 	})
-
-	// Start Dedicated Metrics Server if configured
-	if metricsSrv != nil {
-		g.Go(func() error {
-			logger.Info("starting dedicated metrics server", zap.String("addr", metricsSrv.Addr))
-			if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				return fmt.Errorf("metrics server error: %w", err)
-			}
-			return nil
-		})
-	}
 
 	// Start gRPC Server
 	g.Go(func() error {
@@ -191,13 +174,6 @@ func run() error {
 		shutdownGroup.Go(func() error {
 			return httpSrv.Shutdown(shutdownCtx)
 		})
-
-		// Shutdown Dedicated Metrics Server if running
-		if metricsSrv != nil {
-			shutdownGroup.Go(func() error {
-				return metricsSrv.Shutdown(shutdownCtx)
-			})
-		}
 
 		// Gracefully Stop gRPC Server with timed fallback to forced Stop()
 		shutdownGroup.Go(func() error {

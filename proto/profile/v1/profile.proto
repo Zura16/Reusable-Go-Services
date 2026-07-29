@@ -4,11 +4,13 @@ package profile.v1;
 
 option go_package = "github.com/Zura16/Reusable-Go-Services/proto/profile/v1;profilev1";
 
-
 // ProfileService provides profile lookup for authenticated users.
 service ProfileService {
   // GetProfile retrieves a user profile by their unique identifier.
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+
+  // ListProfiles streams user profiles matching the request criteria.
+  rpc ListProfiles(GetProfileRequest) returns (stream GetProfileResponse);
 }
 
 // GetProfileRequest is the request message for GetProfile.

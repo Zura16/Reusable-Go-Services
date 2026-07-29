@@ -28,18 +28,19 @@ type Metrics struct {
 	GRPCRequestDuration *prometheus.HistogramVec
 }
 
-// NewMetrics creates and registers all standard collectors for the service without panicking.
-// If reg is nil, it uses prometheus.DefaultRegisterer and prometheus.DefaultGatherer.
-func NewMetrics(reg prometheus.Registerer) (*Metrics, error) {
+// NewMetrics creates and registers all standard collectors for the service cleanly.
+// If reg is nil, it uses prometheus.DefaultRegisterer. If gatherer is nil, it uses prometheus.DefaultGatherer.
+func NewMetrics(reg prometheus.Registerer, gatherer prometheus.Gatherer) (*Metrics, error) {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
 	}
 
-	var gatherer prometheus.Gatherer
-	if g, ok := reg.(prometheus.Gatherer); ok {
-		gatherer = g
-	} else {
-		gatherer = prometheus.DefaultGatherer
+	if gatherer == nil {
+		if g, ok := reg.(prometheus.Gatherer); ok {
+			gatherer = g
+		} else {
+			gatherer = prometheus.DefaultGatherer
+		}
 	}
 
 	m := &Metrics{

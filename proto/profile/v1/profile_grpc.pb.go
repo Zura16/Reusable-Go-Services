@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProfileService_GetProfile_FullMethodName = "/profile.v1.ProfileService/GetProfile"
+	ProfileService_GetProfile_FullMethodName   = "/profile.v1.ProfileService/GetProfile"
+	ProfileService_ListProfiles_FullMethodName = "/profile.v1.ProfileService/ListProfiles"
 )
 
 // ProfileServiceClient is the client API for ProfileService service.
@@ -30,6 +31,8 @@ const (
 type ProfileServiceClient interface {
 	// GetProfile retrieves a user profile by their unique identifier.
 	GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
+	// ListProfiles streams user profiles matching the request criteria.
+	ListProfiles(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetProfileResponse], error)
 }
 
 type profileServiceClient struct {
@@ -50,6 +53,25 @@ func (c *profileServiceClient) GetProfile(ctx context.Context, in *GetProfileReq
 	return out, nil
 }
 
+func (c *profileServiceClient) ListProfiles(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetProfileResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ProfileService_ServiceDesc.Streams[0], ProfileService_ListProfiles_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetProfileRequest, GetProfileResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProfileService_ListProfilesClient = grpc.ServerStreamingClient[GetProfileResponse]
+
 // ProfileServiceServer is the server API for ProfileService service.
 // All implementations must embed UnimplementedProfileServiceServer
 // for forward compatibility.
@@ -58,6 +80,8 @@ func (c *profileServiceClient) GetProfile(ctx context.Context, in *GetProfileReq
 type ProfileServiceServer interface {
 	// GetProfile retrieves a user profile by their unique identifier.
 	GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error)
+	// ListProfiles streams user profiles matching the request criteria.
+	ListProfiles(*GetProfileRequest, grpc.ServerStreamingServer[GetProfileResponse]) error
 	mustEmbedUnimplementedProfileServiceServer()
 }
 
@@ -70,6 +94,9 @@ type UnimplementedProfileServiceServer struct{}
 
 func (UnimplementedProfileServiceServer) GetProfile(context.Context, *GetProfileRequest) (*GetProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetProfile not implemented")
+}
+func (UnimplementedProfileServiceServer) ListProfiles(*GetProfileRequest, grpc.ServerStreamingServer[GetProfileResponse]) error {
+	return status.Error(codes.Unimplemented, "method ListProfiles not implemented")
 }
 func (UnimplementedProfileServiceServer) mustEmbedUnimplementedProfileServiceServer() {}
 func (UnimplementedProfileServiceServer) testEmbeddedByValue()                        {}
@@ -110,6 +137,17 @@ func _ProfileService_GetProfile_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProfileService_ListProfiles_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetProfileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ProfileServiceServer).ListProfiles(m, &grpc.GenericServerStream[GetProfileRequest, GetProfileResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProfileService_ListProfilesServer = grpc.ServerStreamingServer[GetProfileResponse]
+
 // ProfileService_ServiceDesc is the grpc.ServiceDesc for ProfileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +160,12 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ProfileService_GetProfile_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListProfiles",
+			Handler:       _ProfileService_ListProfiles_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/profile/v1/profile.proto",
 }

@@ -3,6 +3,7 @@ package httpserver
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -19,6 +20,7 @@ type Option func(*Server)
 // Server represents the HTTP server instance.
 type Server struct {
 	httpServer        *http.Server
+	metricsServer     *http.Server
 	logger            *zap.Logger
 	mux               *http.ServeMux
 	handler           http.Handler
@@ -28,6 +30,7 @@ type Server struct {
 	readHeaderTimeout time.Duration
 	maxHeaderBytes    int
 	addr              string
+	metricsAddr       string
 	middleware        []func(http.Handler) http.Handler
 }
 
@@ -52,7 +55,7 @@ func WithMaxBodySize(n int64) Option {
 	}
 }
 
-// WithAddr overrides the bind address (e.g. "127.0.0.1:8080").
+// WithAddr overrides the main server bind address (e.g. "127.0.0.1:8080").
 func WithAddr(addr string) Option {
 	return func(s *Server) {
 		s.addr = addr
@@ -95,6 +98,10 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		addr:              ":" + strconv.Itoa(cfg.Port),
 	}
 
+	if cfg.MetricsPort > 0 && cfg.MetricsPort != cfg.Port {
+		s.metricsAddr = ":" + strconv.Itoa(cfg.MetricsPort)
+	}
+
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -115,7 +122,7 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		_, _ = w.Write([]byte("Ready"))
 	})
 
-	// Setup metrics route using gatherer from metrics instance
+	// Setup metrics route on main server
 	s.mux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
 
 	// Build the middleware chain.
@@ -147,6 +154,18 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		MaxHeaderBytes:    s.maxHeaderBytes,
 	}
 
+	// Initialize dedicated metrics server if MetricsPort is configured on a separate port
+	if s.metricsAddr != "" {
+		metricsMux := http.NewServeMux()
+		metricsMux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
+		s.metricsServer = &http.Server{
+			Addr:              s.metricsAddr,
+			Handler:           metricsMux,
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      10 * time.Second,
+		}
+	}
+
 	return s, nil
 }
 
@@ -154,7 +173,6 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 func NewMetricsServer(port int, m *observability.Metrics) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", observability.Handler(m.Gatherer()))
-
 	return &http.Server{
 		Addr:              ":" + strconv.Itoa(port),
 		Handler:           mux,
@@ -168,16 +186,37 @@ func (s *Server) Handler() http.Handler {
 	return s.handler
 }
 
-// ListenAndServe starts the HTTP server to begin accepting requests.
+// ListenAndServe starts the HTTP server (and dedicated metrics server if configured) to begin accepting requests.
 func (s *Server) ListenAndServe() error {
+	if s.metricsServer != nil {
+		go func() {
+			s.logger.Info("starting dedicated metrics server", zap.String("addr", s.metricsServer.Addr))
+			if err := s.metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				s.logger.Error("metrics server error", zap.Error(err))
+			}
+		}()
+	}
+
 	s.logger.Info("starting http server", zap.String("addr", s.httpServer.Addr))
 	return s.httpServer.ListenAndServe()
 }
 
-// Shutdown gracefully shuts down the server.
+// Shutdown gracefully shuts down the HTTP server and dedicated metrics server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("shutting down http server")
-	return s.httpServer.Shutdown(ctx)
+	var errs []error
+
+	if s.metricsServer != nil {
+		if err := s.metricsServer.Shutdown(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }
 
 // Handle registers a standard http.Handler for the specified pattern.

@@ -2,14 +2,19 @@ package grpcserver
 
 import (
 	"context"
+	"io"
 	"net"
 	"testing"
 
 	"github.com/Zura16/Reusable-Go-Services/auth"
 	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/observability"
 	profilev1 "github.com/Zura16/Reusable-Go-Services/proto/profile/v1"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -107,7 +112,36 @@ func TestGetProfile_Success(t *testing.T) {
 	if res.UserId != "user1" {
 		t.Errorf("expected user1, got %s", res.UserId)
 	}
+}
 
+func TestServerStreamingRPCAndStreamInterceptors(t *testing.T) {
+	t.Parallel()
+	conn, cleanup := setupTestServer(t)
+	defer cleanup()
+
+	client := profilev1.NewProfileServiceClient(conn)
+
+	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
+	stream, err := client.ListProfiles(ctx, &profilev1.GetProfileRequest{})
+	if err != nil {
+		t.Fatalf("unexpected error starting stream: %v", err)
+	}
+
+	var count int
+	for {
+		_, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error during streaming: %v", err)
+		}
+		count++
+	}
+
+	if count != 2 {
+		t.Errorf("expected 2 streamed profiles, got %d", count)
+	}
 }
 
 func TestGetProfile_NotFound(t *testing.T) {
@@ -186,7 +220,6 @@ func TestDeadlinePropagation(t *testing.T) {
 
 	client := profilev1.NewProfileServiceClient(conn)
 
-	// Use an already-cancelled context for deterministic failure without time.Sleep
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -205,15 +238,21 @@ func (s *panickingServer) GetProfile(context.Context, *profilev1.GetProfileReque
 	panic("something went wrong")
 }
 
-func TestRecoveryInterceptor(t *testing.T) {
+func TestRecoveryInterceptorPanicLoggingAndMetrics(t *testing.T) {
 	t.Parallel()
 
 	lis := bufconn.Listen(bufSize)
-	logger := zap.NewNop()
-	val := &mockValidator{}
+	core, logs := observer.New(zapcore.InfoLevel)
+	logger := zap.New(core)
+	reg := prometheus.NewRegistry()
+	metrics, err := observability.NewMetrics(reg, reg)
+	if err != nil {
+		t.Fatalf("unexpected error creating metrics: %v", err)
+	}
 
+	val := &mockValidator{}
 	cfg := config.Config{GRPCPort: 50052}
-	srv, err := New(cfg, logger, val, nil, WithListener(lis))
+	srv, err := New(cfg, logger, val, metrics, WithListener(lis))
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
@@ -242,7 +281,14 @@ func TestRecoveryInterceptor(t *testing.T) {
 	ctx := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer valid-token")
 	_, err = client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
 
+	// Assert 1: Returns Internal status code
 	if status.Code(err) != codes.Internal {
-		t.Errorf("Expected Internal error for panic, got %v", err)
+		t.Fatalf("Expected Internal error for panic, got %v", err)
+	}
+
+	// Assert 2: Produces structured request log
+	entries := logs.All()
+	if len(entries) < 2 {
+		t.Fatalf("expected at least 2 log entries (panic + grpc request log), got %d", len(entries))
 	}
 }

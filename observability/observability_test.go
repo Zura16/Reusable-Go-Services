@@ -78,7 +78,8 @@ func TestMetricsAndGatherer(t *testing.T) {
 	t.Parallel()
 
 	reg := prometheus.NewRegistry()
-	m, err := observability.NewMetrics(reg)
+	m, err := observability.NewMetrics(reg, reg)
+
 	if err != nil {
 		t.Fatalf("unexpected error creating metrics: %v", err)
 	}
