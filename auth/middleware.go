@@ -3,31 +3,28 @@ package auth
 
 import (
 	"net/http"
-	"strings"
 )
 
 // HTTPMiddleware creates middleware that authenticates requests using a bearer token.
-// It extracts the token from the "Authorization" header and uses the provided TokenValidator.
+// It extracts the token from the "Authorization" header using ParseBearer and uses the provided TokenValidator.
 // On success, it injects the Identity into the request context.
-// On failure, it returns a 401 Unauthorized status with a generic message.
+// On failure (including nil validator or multiple Authorization headers), it returns 401 Unauthorized.
 func HTTPMiddleware(validator TokenValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
+			if validator == nil {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
 
-			const prefix = "Bearer "
-			if !strings.HasPrefix(authHeader, prefix) {
+			authHeaders := r.Header["Authorization"]
+			if len(authHeaders) != 1 {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
 
-			token := strings.TrimPrefix(authHeader, prefix)
-			token = strings.TrimSpace(token)
-			if token == "" {
+			token, err := ParseBearer(authHeaders[0])
+			if err != nil {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}

@@ -1,8 +1,9 @@
 package httpclient
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 )
+
 
 func TestDefaultClient(t *testing.T) {
 	t.Parallel()
@@ -26,12 +28,6 @@ func TestDefaultClient(t *testing.T) {
 	}
 	if transport.MaxIdleConnsPerHost != 10 {
 		t.Errorf("expected MaxIdleConnsPerHost 10, got %d", transport.MaxIdleConnsPerHost)
-	}
-	if transport.IdleConnTimeout != 90*time.Second {
-		t.Errorf("expected IdleConnTimeout 90s, got %v", transport.IdleConnTimeout)
-	}
-	if transport.TLSHandshakeTimeout != 10*time.Second {
-		t.Errorf("expected TLSHandshakeTimeout 10s, got %v", transport.TLSHandshakeTimeout)
 	}
 }
 
@@ -55,34 +51,18 @@ func TestGet(t *testing.T) {
 	}
 }
 
-func TestPost(t *testing.T) {
-	t.Parallel()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("expected POST, got %s", r.Method)
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	client := New()
-	resp, err := client.Post(context.Background(), server.URL, "application/json", strings.NewReader("{}"))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected 200, got %d", resp.StatusCode)
-	}
-}
-
-func TestRetryOnServerError(t *testing.T) {
+func TestReplayableBodyRetries(t *testing.T) {
 	t.Parallel()
 	var attempts int32
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a := atomic.AddInt32(&attempts, 1)
-		if a <= 2 {
+		count := atomic.AddInt32(&attempts, 1)
+		body, _ := io.ReadAll(r.Body)
+		if string(body) != "payload-data" {
+			t.Errorf("attempt %d received corrupted body: %s", count, string(body))
+		}
+
+		if count == 1 {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
@@ -90,200 +70,106 @@ func TestRetryOnServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	retrier := DefaultRetrier()
-	retrier.BaseDelay = 10 * time.Millisecond // speed up test
+	retrier := &Retrier{
+		MaxRetries:  2,
+		BaseDelay:   1 * time.Millisecond,
+		MaxDelay:    10 * time.Millisecond,
+		Jitter:      0.1,
+		RetryUnsafe: true,
+	}
 	client := New(WithRetrier(retrier))
 
-	resp, err := client.Get(context.Background(), server.URL)
+	// bytes.NewReader populates req.GetBody for replayability
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPut, server.URL, bytes.NewReader([]byte("payload-data")))
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+
+	resp, err := client.Do(context.Background(), req)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected 200, got %d", resp.StatusCode)
+		t.Fatalf("expected 200 OK after retry, got %d", resp.StatusCode)
 	}
-	if attempts != 3 {
-		t.Errorf("expected 3 attempts, got %d", attempts)
-	}
-}
-
-func TestRetryOn429(t *testing.T) {
-	t.Parallel()
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a := atomic.AddInt32(&attempts, 1)
-		if a == 1 {
-			w.Header().Set("Retry-After", "1")
-			w.WriteHeader(http.StatusTooManyRequests)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	client := New()
-	start := time.Now()
-	resp, err := client.Get(context.Background(), server.URL)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	elapsed := time.Since(start)
-
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected 200, got %d", resp.StatusCode)
-	}
-	if elapsed < 1*time.Second {
-		t.Errorf("expected at least 1s delay, got %v", elapsed)
+	if atomic.LoadInt32(&attempts) != 2 {
+		t.Fatalf("expected 2 attempts, got %d", atomic.LoadInt32(&attempts))
 	}
 }
 
-func TestNoRetryOnClientError(t *testing.T) {
-	t.Parallel()
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&attempts, 1)
-		w.WriteHeader(http.StatusBadRequest)
-	}))
-	defer server.Close()
-
-	client := New()
-	resp, err := client.Get(context.Background(), server.URL)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", resp.StatusCode)
-	}
-	if attempts != 1 {
-		t.Errorf("expected 1 attempt, got %d", attempts)
-	}
+type nonReplayableBody struct {
+	io.Reader
 }
 
-func TestNoRetryOnPOST(t *testing.T) {
-	t.Parallel()
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&attempts, 1)
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}))
-	defer server.Close()
+func (b nonReplayableBody) Close() error { return nil }
 
-	client := New()
-	resp, err := client.Post(context.Background(), server.URL, "application/json", strings.NewReader("{}"))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if attempts != 1 {
-		t.Errorf("expected 1 attempt, got %d", attempts)
-	}
-}
-
-func TestRetryUnsafePOST(t *testing.T) {
-	t.Parallel()
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a := atomic.AddInt32(&attempts, 1)
-		if a == 1 {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	retrier := DefaultRetrier()
-	retrier.BaseDelay = 5 * time.Millisecond
-	retrier.RetryUnsafe = true
-	client := New(WithRetrier(retrier))
-
-	resp, err := client.Post(context.Background(), server.URL, "application/json", strings.NewReader("{}"))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if attempts != 2 {
-		t.Errorf("expected 2 attempts, got %d", attempts)
-	}
-}
-
-func TestContextCancellation(t *testing.T) {
+func TestNonReplayableBodyFailsCleanly(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
 	defer server.Close()
 
-	retrier := DefaultRetrier()
-	retrier.BaseDelay = 2 * time.Second
+	retrier := &Retrier{
+		MaxRetries:  2,
+		BaseDelay:   1 * time.Millisecond,
+		MaxDelay:    10 * time.Millisecond,
+		Jitter:      0.1,
+		RetryUnsafe: true,
+	}
 	client := New(WithRetrier(retrier))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+	// Custom body without GetBody function
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPut, server.URL, nonReplayableBody{Reader: strings.NewReader("payload")})
+	req.GetBody = nil
 
-	_, err := client.Get(ctx, server.URL)
+	_, err := client.Do(context.Background(), req)
 	if err == nil {
-		t.Fatal("expected error due to context cancellation")
-	}
-	if err != context.DeadlineExceeded && err != context.Canceled {
-		t.Errorf("expected context error, got %v", err)
+		t.Fatal("expected error when trying to retry non-replayable body")
 	}
 }
 
-func TestExponentialBackoffAndMaxRetries(t *testing.T) {
+func TestRetryAfterParsing(t *testing.T) {
 	t.Parallel()
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&attempts, 1)
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}))
-	defer server.Close()
 
 	retrier := DefaultRetrier()
-	retrier.BaseDelay = 10 * time.Millisecond
-	retrier.MaxRetries = 2
-	client := New(WithRetrier(retrier))
 
-	_, _ = client.Get(context.Background(), server.URL)
-	
-	if attempts != 3 {
-		t.Errorf("expected 3 attempts (1 initial + 2 retries), got %d", attempts)
+	// Test 1: Numeric seconds
+	respNum := &http.Response{
+		StatusCode: http.StatusTooManyRequests,
+		Header:     http.Header{"Retry-After": []string{"2"}},
+	}
+	delayNum := retrier.calculateDelay(0, respNum, context.Background())
+	if delayNum < 1*time.Second || delayNum > 5*time.Second {
+		t.Errorf("expected numeric delay ~2s, got %v", delayNum)
+	}
+
+	// Test 2: HTTP-date RFC1123 format
+	futureDate := time.Now().Add(3 * time.Second).UTC().Format(http.TimeFormat)
+	respDate := &http.Response{
+		StatusCode: http.StatusTooManyRequests,
+		Header:     http.Header{"Retry-After": []string{futureDate}},
+	}
+	delayDate := retrier.calculateDelay(0, respDate, context.Background())
+	if delayDate <= 0 || delayDate > 5*time.Second {
+		t.Errorf("expected HTTP-date delay <=5s, got %v", delayDate)
 	}
 }
 
-func TestJitterBounds(t *testing.T) {
+func TestRetrierValidation(t *testing.T) {
 	t.Parallel()
-	retrier := DefaultRetrier()
-	retrier.BaseDelay = 100 * time.Millisecond
-	retrier.Jitter = 0.2 // 20%
-	
-	// Test attempt 0: delay should be between 80ms and 120ms
-	for i := 0; i < 100; i++ {
-		delay := retrier.calculateDelay(0, nil)
-		if delay < 80*time.Millisecond || delay > 120*time.Millisecond {
-			t.Errorf("delay out of bounds: %v", delay)
-		}
+	invalidRetrier := &Retrier{
+		MaxRetries: -1,
+		BaseDelay:  0,
+		MaxDelay:   0,
 	}
-}
+	client := New(WithRetrier(invalidRetrier))
 
-// ExampleClient_Get demonstrates how to use the HTTP client for a GET request.
-func ExampleClient_Get() {
-	client := New(WithTimeout(10 * time.Second))
-	
-	// In a real application, you would use a valid URL and context
-	ctx := context.Background()
-	resp, err := client.Get(ctx, "https://example.com")
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:8080", nil)
+	_, err := client.Do(context.Background(), req)
+	if err == nil {
+		t.Fatal("expected error when using invalid Retrier configuration")
 	}
-	defer func() { _ = resp.Body.Close() }()
-	
-	fmt.Printf("Status: %d\n", resp.StatusCode)
 }

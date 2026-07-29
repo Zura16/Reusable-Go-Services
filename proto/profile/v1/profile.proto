@@ -2,7 +2,8 @@ syntax = "proto3";
 
 package profile.v1;
 
-option go_package = "github.com/aalindkale/servicekit/proto/profile/v1;profilev1";
+option go_package = "github.com/Zura16/Reusable-Go-Services/proto/profile/v1;profilev1";
+
 
 // ProfileService provides profile lookup for authenticated users.
 service ProfileService {

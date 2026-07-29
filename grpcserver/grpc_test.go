@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aalindkale/servicekit/auth"
-	"github.com/aalindkale/servicekit/config"
-	profilev1 "github.com/aalindkale/servicekit/proto/profile/v1"
+	"github.com/Zura16/Reusable-Go-Services/auth"
+	"github.com/Zura16/Reusable-Go-Services/config"
+	profilev1 "github.com/Zura16/Reusable-Go-Services/proto/profile/v1"
+
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -153,20 +154,17 @@ func TestDeadlinePropagation(t *testing.T) {
 	conn, _ := setupTestServer(t)
 	client := profilev1.NewProfileServiceClient(conn)
 
-	// Since our handler checks for deadline exceeded directly based on ctx.Err(),
-	// we just pass a context that is already timed out or very short.
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Microsecond)
-	defer cancel()
-
-	// Need to wait slightly so it actually expires before reaching the handler
-	time.Sleep(2 * time.Microsecond)
+	// Use an already-cancelled context for deterministic failure without time.Sleep
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
 	ctx = metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer valid-token")
 	_, err := client.GetProfile(ctx, &profilev1.GetProfileRequest{UserId: "user1"})
-	if status.Code(err) != codes.DeadlineExceeded && status.Code(err) != codes.Canceled {
-		t.Errorf("Expected DeadlineExceeded or Canceled, got %v", status.Code(err))
+	if status.Code(err) != codes.Canceled && status.Code(err) != codes.DeadlineExceeded {
+		t.Errorf("Expected Canceled or DeadlineExceeded, got %v", status.Code(err))
 	}
 }
+
 
 // panicing handler just for testing recovery
 type panickingServer struct {

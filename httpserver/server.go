@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aalindkale/servicekit/config"
-	"github.com/aalindkale/servicekit/observability"
+	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/observability"
+
 	"go.uber.org/zap"
 )
 
@@ -17,13 +18,17 @@ type Option func(*Server)
 
 // Server represents the HTTP server instance.
 type Server struct {
-	httpServer  *http.Server
-	logger      *zap.Logger
-	mux         *http.ServeMux
-	metrics     *observability.Metrics
-	readyCheck  func() bool
-	maxBodySize int64
-	middleware  []func(http.Handler) http.Handler
+	httpServer        *http.Server
+	logger            *zap.Logger
+	mux               *http.ServeMux
+	handler           http.Handler
+	metrics           *observability.Metrics
+	readyCheck        func() bool
+	maxBodySize       int64
+	readHeaderTimeout time.Duration
+	maxHeaderBytes    int
+	addr              string
+	middleware        []func(http.Handler) http.Handler
 }
 
 // WithMetrics enables Prometheus metrics using the provided Metrics instance.
@@ -47,6 +52,27 @@ func WithMaxBodySize(n int64) Option {
 	}
 }
 
+// WithAddr overrides the bind address (e.g. "127.0.0.1:8080").
+func WithAddr(addr string) Option {
+	return func(s *Server) {
+		s.addr = addr
+	}
+}
+
+// WithReadHeaderTimeout sets the ReadHeaderTimeout on http.Server.
+func WithReadHeaderTimeout(d time.Duration) Option {
+	return func(s *Server) {
+		s.readHeaderTimeout = d
+	}
+}
+
+// WithMaxHeaderBytes sets the MaxHeaderBytes on http.Server.
+func WithMaxHeaderBytes(n int) Option {
+	return func(s *Server) {
+		s.maxHeaderBytes = n
+	}
+}
+
 // WithMiddleware appends custom middleware to the server's chain.
 func WithMiddleware(mw ...func(http.Handler) http.Handler) Option {
 	return func(s *Server) {
@@ -54,12 +80,19 @@ func WithMiddleware(mw ...func(http.Handler) http.Handler) Option {
 	}
 }
 
-// New creates a new HTTP server configured with standard routes and middleware.
+// New creates a new HTTP server configured with standard routes, metrics gatherer, and middleware.
 func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	s := &Server{
-		logger:      logger,
-		mux:         http.NewServeMux(),
-		maxBodySize: 1 << 20, // Default 1MB
+		logger:            logger,
+		mux:               http.NewServeMux(),
+		maxBodySize:       1 << 20, // Default 1MB
+		readHeaderTimeout: 5 * time.Second,
+		maxHeaderBytes:    1 << 20, // Default 1MB
+		addr:              ":" + strconv.Itoa(cfg.Port),
 	}
 
 	for _, opt := range opts {
@@ -82,20 +115,20 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 		_, _ = w.Write([]byte("Ready"))
 	})
 
-	// Setup metrics route
-	s.mux.Handle("/metrics", observability.Handler())
+	// Setup metrics route using gatherer from metrics instance
+	s.mux.Handle("/metrics", observability.Handler(s.metrics.Gatherer()))
 
-	// Build the complete middleware chain
+	// Build the middleware chain.
+	// Order: RequestID -> Logging -> Metrics -> Recovery -> MaxBodySize -> User Middleware -> Mux
+	// Placing Recovery INSIDE Logging & Metrics ensures panics caught by Recovery still log structured JSON and record Prometheus 500 status!
 	var mwChain []func(http.Handler) http.Handler
-	mwChain = append(mwChain, Recovery(logger))
 	mwChain = append(mwChain, RequestID())
 	mwChain = append(mwChain, Logging(logger))
 	if s.metrics != nil {
 		mwChain = append(mwChain, Metrics(s.metrics))
 	}
+	mwChain = append(mwChain, Recovery(logger))
 	mwChain = append(mwChain, MaxBodySize(s.maxBodySize))
-
-	// Add any user-supplied middleware
 	mwChain = append(mwChain, s.middleware...)
 
 	// Wrap the multiplexer
@@ -103,16 +136,24 @@ func New(cfg config.Config, logger *zap.Logger, opts ...Option) (*Server, error)
 	for i := len(mwChain) - 1; i >= 0; i-- {
 		handler = mwChain[i](handler)
 	}
+	s.handler = handler
 
 	s.httpServer = &http.Server{
-		Addr:         ":" + strconv.Itoa(cfg.Port),
-		Handler:      handler,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Addr:              s.addr,
+		Handler:           s.handler,
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: s.readHeaderTimeout,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    s.maxHeaderBytes,
 	}
 
 	return s, nil
+}
+
+// Handler returns the composed http.Handler containing all middleware and routes.
+func (s *Server) Handler() http.Handler {
+	return s.handler
 }
 
 // ListenAndServe starts the HTTP server to begin accepting requests.

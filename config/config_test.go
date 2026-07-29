@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aalindkale/servicekit/config"
+	"github.com/Zura16/Reusable-Go-Services/config"
+
 )
 
 func TestLoad_Defaults(t *testing.T) {

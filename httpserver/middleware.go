@@ -2,15 +2,20 @@
 package httpserver
 
 import (
+	"bufio"
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/aalindkale/servicekit/observability"
+
+	"github.com/Zura16/Reusable-Go-Services/observability"
+
 	"github.com/google/uuid"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 )
 
@@ -26,19 +31,43 @@ func RequestIDFromContext(ctx context.Context) string {
 	return ""
 }
 
-// responseWriter is a wrapper around http.ResponseWriter that captures the status code.
+// responseWriter is a robust wrapper around http.ResponseWriter that captures status and supports optional interfaces.
 type responseWriter struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
-// WriteHeader captures the status code and calls the underlying WriteHeader.
 func (rw *responseWriter) WriteHeader(code int) {
+	if rw.wroteHeader {
+		return
+	}
 	rw.status = code
+	rw.wroteHeader = true
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// Recovery middleware catches panics, logs the stack trace with zap, and returns a 500 error.
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	if !rw.wroteHeader {
+		rw.WriteHeader(http.StatusOK)
+	}
+	return rw.ResponseWriter.Write(b)
+}
+
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := rw.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, errors.New("http.Hijacker interface not supported by underlying response writer")
+}
+
+// Recovery middleware catches panics, logs the stack trace with zap, and sets 500 status.
 func Recovery(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,12 +85,11 @@ func Recovery(logger *zap.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// RequestID middleware generates a UUID v4 if not present in the X-Request-ID header,
-// adds it to the response header, and stores it in the context.
+// RequestID middleware validates or generates a X-Request-ID header.
 func RequestID() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			id := r.Header.Get("X-Request-ID")
+			id := sanitizeRequestID(r.Header.Get("X-Request-ID"))
 			if id == "" {
 				id = uuid.New().String()
 			}
@@ -72,66 +100,91 @@ func RequestID() func(http.Handler) http.Handler {
 	}
 }
 
-// Logging middleware logs method, path, status, latency, and request_id.
-// It uses observability.RedactHeaders to redact the Authorization header.
+func sanitizeRequestID(id string) string {
+	id = strings.TrimSpace(id)
+	if id == "" || len(id) > 64 {
+		return ""
+	}
+	for _, ch := range id {
+		if ch < 32 || ch > 126 {
+			return ""
+		}
+	}
+	return id
+}
+
+// Logging middleware logs method, route, status, latency, and request_id.
+// It calls observability.RedactHeaders without custom arguments to preserve Authorization, Cookie, and Set-Cookie redaction.
 func Logging(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-
 			rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+			defer func() {
+				latency := time.Since(start)
+				reqID := RequestIDFromContext(r.Context())
+				redactedHeaders := observability.RedactHeaders(r.Header)
+
+				route := r.Pattern
+				if route == "" {
+					route = "unknown"
+				}
+
+				logger.Info("http request",
+					zap.String("method", r.Method),
+					zap.String("route", route),
+					zap.Int("status", rw.status),
+					zap.String("status_class", observability.StatusClass(rw.status)),
+					zap.Duration("latency", latency),
+					zap.String("request_id", reqID),
+					zap.Any("headers", redactedHeaders),
+				)
+			}()
+
 			next.ServeHTTP(rw, r)
-
-			latency := time.Since(start)
-			reqID := RequestIDFromContext(r.Context())
-
-			redactedHeaders := observability.RedactHeaders(r.Header, "Authorization")
-
-			logger.Info("http request",
-				zap.String("method", r.Method),
-				zap.String("path", r.URL.Path),
-				zap.Int("status", rw.status),
-				zap.Duration("latency", latency),
-				zap.String("request_id", reqID),
-				zap.Any("headers", redactedHeaders),
-			)
 		})
 	}
 }
 
-// Metrics middleware increments HTTPRequestsTotal and observes HTTPRequestDuration.
+// Metrics middleware records Prometheus counters and histograms using Go 1.22 route patterns.
 func Metrics(m *observability.Metrics) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-
 			rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
-			next.ServeHTTP(rw, r)
 
-			if m != nil && m.HTTPRequestsTotal != nil && m.HTTPRequestDuration != nil {
-				statusStr := strconv.Itoa(rw.status)
-				m.HTTPRequestsTotal.WithLabelValues(r.Method, r.URL.Path, statusStr).Inc()
-				m.HTTPRequestDuration.WithLabelValues(r.Method, r.URL.Path).Observe(time.Since(start).Seconds())
-			}
+			defer func() {
+				if m != nil {
+					route := r.Pattern
+					if route == "" {
+						route = "unknown"
+					}
+					statusStr := strconv.Itoa(rw.status)
+					statusClass := observability.StatusClass(rw.status)
+
+					if m.HTTPRequestsTotal != nil {
+						m.HTTPRequestsTotal.WithLabelValues(r.Method, route, statusStr, statusClass).Inc()
+					}
+					if m.HTTPRequestDuration != nil {
+						m.HTTPRequestDuration.WithLabelValues(r.Method, route).Observe(time.Since(start).Seconds())
+					}
+				}
+			}()
+
+			next.ServeHTTP(rw, r)
 		})
 	}
 }
 
-// MaxBodySize middleware wraps the request body with http.MaxBytesReader.
-func MaxBodySize(n int64) func(http.Handler) http.Handler {
+// MaxBodySize middleware limits request body sizes using http.MaxBytesReader.
+func MaxBodySize(limit int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if n > 0 {
-				r.Body = http.MaxBytesReader(w, r.Body, n)
+			if limit > 0 && r.Body != nil {
+				r.Body = http.MaxBytesReader(w, r.Body, limit)
 			}
 			next.ServeHTTP(w, r)
 		})
-	}
-}
-
-// Tracing middleware wraps the handler with otelhttp.NewHandler.
-func Tracing(serviceName string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return otelhttp.NewHandler(next, serviceName)
 	}
 }

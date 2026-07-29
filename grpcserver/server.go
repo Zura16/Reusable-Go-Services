@@ -1,25 +1,30 @@
-// Package grpcserver provides a gRPC server setup with unary interceptors and service registration.
+// Package grpcserver provides a gRPC server setup with unary/stream interceptors, health service, and service registration.
 package grpcserver
 
 import (
 	"fmt"
 	"net"
 
-	"github.com/aalindkale/servicekit/auth"
-	"github.com/aalindkale/servicekit/config"
-	"github.com/aalindkale/servicekit/observability"
+
+	"github.com/Zura16/Reusable-Go-Services/auth"
+	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/observability"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
 type serverConfig struct {
 	reflectionEnabled bool
 	listener          net.Listener
+	maxRecvMsgSize    int
+	maxSendMsgSize    int
 }
 
-// Option configures the serverConfig.
+// Option configures the gRPC server.
 type Option func(*serverConfig)
 
 // WithReflection enables gRPC reflection on the server.
@@ -29,85 +34,130 @@ func WithReflection() Option {
 	}
 }
 
-// WithListener uses a custom listener for the server. Useful for testing (e.g., bufconn).
-func WithListener(lis net.Listener) Option {
+// WithListener sets a custom net.Listener for the gRPC server (useful for in-memory testing with bufconn).
+func WithListener(l net.Listener) Option {
 	return func(c *serverConfig) {
-		c.listener = lis
+		c.listener = l
 	}
 }
 
-// Server wraps a grpc.Server.
+// WithMaxMsgSize sets maximum receive and send message sizes.
+func WithMaxMsgSize(recvBytes, sendBytes int) Option {
+	return func(c *serverConfig) {
+		c.maxRecvMsgSize = recvBytes
+		c.maxSendMsgSize = sendBytes
+	}
+}
+
+// Server wraps a gRPC server and its listener.
 type Server struct {
-	grpcServer *grpc.Server
-	listener   net.Listener
-	logger     *zap.Logger
-	port       int
+	server       *grpc.Server
+	listener     net.Listener
+	logger       *zap.Logger
+	healthServer *health.Server
 }
 
-// New creates a new gRPC server with the default interceptor chain.
-// Default interceptor chain order: Recovery -> Logging -> Metrics -> Auth
+// New creates a new gRPC server with interceptor chain and health service.
 func New(cfg config.Config, logger *zap.Logger, validator auth.TokenValidator, metrics *observability.Metrics, opts ...Option) (*Server, error) {
-	c := &serverConfig{}
-	for _, opt := range opts {
-		opt(c)
+	if logger == nil {
+		logger = zap.NewNop()
 	}
 
-	chain := []grpc.UnaryServerInterceptor{
+	sc := &serverConfig{
+		maxRecvMsgSize: 4 << 20, // 4MB default
+		maxSendMsgSize: 4 << 20, // 4MB default
+	}
+
+	for _, opt := range opts {
+		opt(sc)
+	}
+
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		UnaryRecoveryInterceptor(logger),
 		UnaryLoggingInterceptor(logger),
-		UnaryMetricsInterceptor(metrics),
-		UnaryAuthInterceptor(validator),
+		otelgrpc.UnaryServerInterceptor(),
 	}
 
-	grpcOpts := []grpc.ServerOption{
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.ChainUnaryInterceptor(chain...),
+	if metrics != nil {
+		unaryInterceptors = append(unaryInterceptors, UnaryMetricsInterceptor(metrics))
 	}
 
-	grpcServer := grpc.NewServer(grpcOpts...)
+	if validator != nil {
+		unaryInterceptors = append(unaryInterceptors, UnaryAuthInterceptor(validator))
+	}
 
-	if c.reflectionEnabled {
-		reflection.Register(grpcServer)
+	streamInterceptors := []grpc.StreamServerInterceptor{
+		otelgrpc.StreamServerInterceptor(),
+	}
+	if validator != nil {
+		streamInterceptors = append(streamInterceptors, StreamAuthInterceptor(validator))
+	}
+
+	serverOpts := []grpc.ServerOption{
+		grpc.ChainUnaryInterceptor(unaryInterceptors...),
+		grpc.ChainStreamInterceptor(streamInterceptors...),
+		grpc.MaxRecvMsgSize(sc.maxRecvMsgSize),
+		grpc.MaxSendMsgSize(sc.maxSendMsgSize),
+	}
+
+	grpcSrv := grpc.NewServer(serverOpts...)
+
+	// Register gRPC Health Check service
+	healthSrv := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(grpcSrv, healthSrv)
+	healthSrv.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	if sc.reflectionEnabled {
+		reflection.Register(grpcSrv)
 	}
 
 	var lis net.Listener
-	if c.listener != nil {
-		lis = c.listener
+	if sc.listener != nil {
+		lis = sc.listener
+	} else {
+		var err error
+		addr := fmt.Sprintf(":%d", cfg.GRPCPort)
+		lis, err = net.Listen("tcp", addr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to listen on %s: %w", addr, err)
+		}
 	}
 
 	return &Server{
-		grpcServer: grpcServer,
-		listener:   lis,
-		logger:     logger,
-		port:       cfg.GRPCPort,
+		server:       grpcSrv,
+		listener:     lis,
+		logger:       logger,
+		healthServer: healthSrv,
 	}, nil
 }
 
-// Serve starts listening on the configured port.
-func (s *Server) Serve() error {
-	if s.listener == nil {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
-		if err != nil {
-			return err
-		}
-		s.listener = lis
-	}
-	s.logger.Info("Starting gRPC server", zap.Int("port", s.port))
-	return s.grpcServer.Serve(s.listener)
-}
-
-// GracefulStop gracefully shuts down the gRPC server.
-func (s *Server) GracefulStop() {
-	s.logger.Info("Gracefully stopping gRPC server")
-	s.grpcServer.GracefulStop()
-}
-
-// RegisterService registers a service and its implementation to the gRPC server.
-func (s *Server) RegisterService(desc *grpc.ServiceDesc, impl interface{}) {
-	s.grpcServer.RegisterService(desc, impl)
-}
-
-// Server returns the underlying grpc.Server.
+// Server returns the underlying *grpc.Server instance.
 func (s *Server) Server() *grpc.Server {
-	return s.grpcServer
+	return s.server
+}
+
+// Listener returns the net.Listener being used by the server.
+func (s *Server) Listener() net.Listener {
+	return s.listener
+}
+
+// Serve starts listening for incoming gRPC requests.
+func (s *Server) Serve() error {
+	s.logger.Info("starting grpc server", zap.String("addr", s.listener.Addr().String()))
+	return s.server.Serve(s.listener)
+}
+
+// GracefulStop gracefully stops the gRPC server.
+func (s *Server) GracefulStop() {
+	s.logger.Info("shutting down grpc server gracefully")
+	if s.healthServer != nil {
+		s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	}
+	s.server.GracefulStop()
+}
+
+// Stop forcefully stops the gRPC server.
+func (s *Server) Stop() {
+	s.logger.Info("forcefully stopping grpc server")
+	s.server.Stop()
 }

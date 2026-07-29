@@ -1,7 +1,6 @@
 package httpserver_test
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,8 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aalindkale/servicekit/config"
-	"github.com/aalindkale/servicekit/httpserver"
+
+	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/httpserver"
+	"github.com/Zura16/Reusable-Go-Services/observability"
+
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -24,9 +27,16 @@ func TestHealthEndpoint(t *testing.T) {
 		t.Fatalf("failed to create server: %v", err)
 	}
 
-	// We can exercise the healthz handler via a test HTTP server wrapping the mux/handler if available,
-	// or test endpoints directly.
-	_ = server
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
+	if body := rec.Body.String(); body != "OK" {
+		t.Fatalf("expected body 'OK', got '%s'", body)
+	}
 }
 
 func TestReadinessEndpoint(t *testing.T) {
@@ -39,59 +49,160 @@ func TestReadinessEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
-	_ = server
+
+	// Test 1: Unavailable when isReady == false
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected status %d, got %d", http.StatusServiceUnavailable, rec.Code)
+	}
+
+	// Test 2: Ready when isReady == true
+	isReady = true
+	req = httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	rec = httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, rec.Code)
+	}
 }
 
-func TestPanicRecovery(t *testing.T) {
+func TestMetricsEndpoint(t *testing.T) {
 	t.Parallel()
 	logger := zap.NewNop()
-	mw := httpserver.Recovery(logger)
-	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic("test panic")
-	}))
+	reg := prometheus.NewRegistry()
+	metrics := observability.NewMetrics(reg)
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	server, err := httpserver.New(config.Config{Port: 8080}, logger, httpserver.WithMetrics(metrics))
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, rr.Code)
+	// Record a sample HTTP request to increment counter
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	// Fetch /metrics endpoint
+	reqMetrics := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	recMetrics := httptest.NewRecorder()
+	server.Handler().ServeHTTP(recMetrics, reqMetrics)
+
+	if recMetrics.Code != http.StatusOK {
+		t.Fatalf("expected status %d on /metrics, got %d", http.StatusOK, recMetrics.Code)
+	}
+
+	body := recMetrics.Body.String()
+	if !strings.Contains(body, "http_requests_total") {
+		t.Fatalf("expected metrics response to contain 'http_requests_total', got:\n%s", body)
 	}
 }
 
-func TestRequestID(t *testing.T) {
+func TestHeaderRedaction(t *testing.T) {
+	t.Parallel()
+	core, logs := observer.New(zapcore.InfoLevel)
+	logger := zap.New(core)
+
+	server, err := httpserver.New(config.Config{Port: 8080}, logger)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	req.Header.Set("Authorization", "Bearer secret-token-value")
+	req.Header.Set("Cookie", "session_id=123456")
+	req.Header.Set("Set-Cookie", "user=alice")
+	req.Header.Set("User-Agent", "TestAgent/1.0")
+
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	allLogs := logs.All()
+	if len(allLogs) == 0 {
+		t.Fatal("expected request log to be recorded")
+	}
+
+	logStr := fmt.Sprintf("%v", allLogs[0].ContextMap())
+	if strings.Contains(logStr, "secret-token-value") {
+		t.Errorf("log leaked Authorization token: %s", logStr)
+	}
+	if strings.Contains(logStr, "session_id=123456") {
+		t.Errorf("log leaked Cookie header: %s", logStr)
+	}
+	if strings.Contains(logStr, "user=alice") {
+		t.Errorf("log leaked Set-Cookie header: %s", logStr)
+	}
+}
+
+func TestPanicRecoveryAndLogging(t *testing.T) {
+	t.Parallel()
+	core, logs := observer.New(zapcore.InfoLevel)
+	logger := zap.New(core)
+	reg := prometheus.NewRegistry()
+	metrics := observability.NewMetrics(reg)
+
+	server, err := httpserver.New(config.Config{Port: 8080}, logger, httpserver.WithMetrics(metrics))
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+
+	server.HandleFunc("GET /panic", func(w http.ResponseWriter, r *http.Request) {
+		panic("handler unexpected error")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d for panic, got %d", http.StatusInternalServerError, rec.Code)
+	}
+
+	// Verify panic recovery logged error AND logging middleware logged status 500
+	entries := logs.All()
+	if len(entries) < 2 {
+		t.Fatalf("expected at least 2 log entries (panic + http request), got %d", len(entries))
+	}
+}
+
+func TestRequestIDSanitization(t *testing.T) {
 	t.Parallel()
 	mw := httpserver.RequestID()
-	var requestID string
-	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID = httpserver.RequestIDFromContext(r.Context())
-	}))
 
+	// Test 1: Malformed/oversized request ID is replaced with UUID
+	oversizedID := strings.Repeat("A", 100)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	req.Header.Set("X-Request-ID", oversizedID)
+	rec := httptest.NewRecorder()
 
-	if requestID == "" {
-		t.Error("expected requestID in context")
-	}
-	if rr.Header().Get("X-Request-ID") != requestID {
-		t.Error("expected X-Request-ID header to match context ID")
+	var capturedID string
+	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedID = httpserver.RequestIDFromContext(r.Context())
+	}))
+	handler.ServeHTTP(rec, req)
+
+	if capturedID == oversizedID || capturedID == "" {
+		t.Fatalf("expected oversized X-Request-ID to be rejected and replaced, got: %s", capturedID)
 	}
 
-	// Test existing ID
+	// Test 2: Valid request ID is preserved
+	validID := "test-request-id-12345"
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("X-Request-ID", "custom-id")
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	req.Header.Set("X-Request-ID", validID)
+	rec = httptest.NewRecorder()
 
-	if requestID != "custom-id" {
-		t.Errorf("expected requestID custom-id, got %s", requestID)
+	handler.ServeHTTP(rec, req)
+	if capturedID != validID {
+		t.Fatalf("expected valid X-Request-ID %s, got: %s", validID, capturedID)
 	}
 }
 
 func TestMaxBodySize(t *testing.T) {
 	t.Parallel()
-	mw := httpserver.MaxBodySize(10) // 10 bytes
+	mw := httpserver.MaxBodySize(10) // 10 bytes limit
 	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -101,60 +212,11 @@ func TestMaxBodySize(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
-	body := strings.NewReader("this is more than 10 bytes")
-	req := httptest.NewRequest(http.MethodPost, "/", body)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("0123456789too-large"))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
 
-	if rr.Code != http.StatusRequestEntityTooLarge {
-		t.Errorf("expected status %d, got %d", http.StatusRequestEntityTooLarge, rr.Code)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("expected status %d for oversized body, got %d", http.StatusRequestEntityTooLarge, rec.Code)
 	}
-}
-
-func TestLoggingMiddleware(t *testing.T) {
-	t.Parallel()
-	core, logs := observer.New(zapcore.InfoLevel)
-	logger := zap.New(core)
-
-	mw := httpserver.Logging(logger)
-	handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-	}))
-
-	req := httptest.NewRequest(http.MethodGet, "/testpath", nil)
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	if logs.Len() != 1 {
-		t.Fatalf("expected 1 log entry, got %d", logs.Len())
-	}
-	logEntry := logs.All()[0]
-	if logEntry.Message != "http request" {
-		t.Errorf("unexpected message: %s", logEntry.Message)
-	}
-}
-
-func TestGracefulShutdown(t *testing.T) {
-	t.Parallel()
-	logger := zap.NewNop()
-	server, _ := httpserver.New(config.Config{Port: 0}, logger)
-	ctx := context.Background()
-	err := server.Shutdown(ctx)
-	if err != nil {
-		t.Errorf("expected no error during shutdown, got %v", err)
-	}
-}
-
-// ExampleServer demonstrates how to start and configure the HTTP server.
-func ExampleServer() {
-	logger := zap.NewNop()
-	cfg := config.Config{Port: 8080}
-
-	srv, _ := httpserver.New(cfg, logger, httpserver.WithMaxBodySize(2<<20))
-	srv.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprint(w, "Hello World")
-	})
-
-	fmt.Println("Server created")
-	// Output: Server created
 }

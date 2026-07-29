@@ -3,6 +3,7 @@ package httpclient
 import (
 	"context"
 	"errors"
+	"io"
 	"math"
 	"math/rand/v2"
 	"net"
@@ -17,10 +18,10 @@ type Retrier struct {
 	BaseDelay   time.Duration // default: 100ms
 	MaxDelay    time.Duration // default: 5s
 	Jitter      float64       // default: 0.2 (20%)
-	RetryUnsafe bool          // default: false — if true, retries POST/PATCH too
+	RetryUnsafe bool          // default: false — if true, allows retrying non-idempotent methods when body is replayable
 }
 
-// DefaultRetrier returns a retrier with defaults.
+// DefaultRetrier returns a retrier with sensible validated defaults.
 func DefaultRetrier() *Retrier {
 	return &Retrier{
 		MaxRetries:  3,
@@ -31,8 +32,29 @@ func DefaultRetrier() *Retrier {
 	}
 }
 
+// Validate checks that retrier parameters are within safe bounds.
+func (r *Retrier) Validate() error {
+	if r.MaxRetries < 0 || r.MaxRetries > 20 {
+		return errors.New("retrier: MaxRetries must be between 0 and 20")
+	}
+	if r.BaseDelay <= 0 {
+		return errors.New("retrier: BaseDelay must be positive")
+	}
+	if r.MaxDelay <= 0 || r.MaxDelay < r.BaseDelay {
+		return errors.New("retrier: MaxDelay must be >= BaseDelay")
+	}
+	if r.Jitter < 0 || r.Jitter > 1.0 {
+		return errors.New("retrier: Jitter must be between 0.0 and 1.0")
+	}
+	return nil
+}
+
 // Do executes fn with retries according to the Retrier configuration.
 func (r *Retrier) Do(ctx context.Context, fn func() (*http.Response, error), method string) (*http.Response, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+
 	var resp *http.Response
 	var err error
 
@@ -46,12 +68,13 @@ func (r *Retrier) Do(ctx context.Context, fn func() (*http.Response, error), met
 			break
 		}
 
-		// Close body if we're retrying and response is not nil
+		// Drain up to 4KB of failed response body before closing
 		if resp != nil && resp.Body != nil {
+			_, _ = io.CopyN(io.Discard, resp.Body, 4096)
 			_ = resp.Body.Close()
 		}
 
-		delay := r.calculateDelay(attempt, resp)
+		delay := r.calculateDelay(attempt, resp, ctx)
 
 		select {
 		case <-ctx.Done():
@@ -78,7 +101,6 @@ func (r *Retrier) isRetryable(resp *http.Response, err error, method string) boo
 	}
 
 	if err != nil {
-		// Network errors (connection refused, DNS, timeout from net package)
 		var netErr net.Error
 		return errors.As(err, &netErr)
 	}
@@ -95,29 +117,49 @@ func (r *Retrier) isRetryable(resp *http.Response, err error, method string) boo
 	return false
 }
 
-func (r *Retrier) calculateDelay(attempt int, resp *http.Response) time.Duration {
+func (r *Retrier) calculateDelay(attempt int, resp *http.Response, ctx context.Context) time.Duration {
+	var finalDelay time.Duration
+
 	if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
 		retryAfterStr := resp.Header.Get("Retry-After")
 		if retryAfterStr != "" {
-			if sec, err := strconv.Atoi(retryAfterStr); err == nil {
-				return time.Duration(sec) * time.Second
+			if sec, err := strconv.Atoi(retryAfterStr); err == nil && sec >= 0 {
+				finalDelay = time.Duration(sec) * time.Second
+			} else if t, err := http.ParseTime(retryAfterStr); err == nil {
+				if d := time.Until(t); d > 0 {
+					finalDelay = d
+				}
 			}
 		}
 	}
 
-	// Exponential backoff: BaseDelay * 2^attempt
-	delay := float64(r.BaseDelay) * math.Pow(2, float64(attempt))
-	if delay > float64(r.MaxDelay) {
-		delay = float64(r.MaxDelay)
+	if finalDelay == 0 {
+		// Exponential backoff: BaseDelay * 2^attempt
+		delay := float64(r.BaseDelay) * math.Pow(2, float64(attempt))
+		if delay > float64(r.MaxDelay) {
+			delay = float64(r.MaxDelay)
+		}
+
+		// Jitter: +/- jitter%
+		jitterAmount := delay * r.Jitter
+		jitter := (rand.Float64() * 2 * jitterAmount) - jitterAmount
+		finalDelay = time.Duration(delay + jitter)
 	}
 
-	// Jitter: +/- jitter%
-	jitterAmount := delay * r.Jitter
-	jitter := (rand.Float64() * 2 * jitterAmount) - jitterAmount
-	finalDelay := time.Duration(delay + jitter)
-	
-	if finalDelay < 0 {
-		return 0
+	// Cap by MaxDelay
+	if finalDelay > r.MaxDelay {
+		finalDelay = r.MaxDelay
 	}
+	if finalDelay < 0 {
+		finalDelay = 0
+	}
+
+	// Cap by context deadline if set
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining > 0 && finalDelay > remaining {
+			finalDelay = remaining
+		}
+	}
+
 	return finalDelay
 }

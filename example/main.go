@@ -1,204 +1,190 @@
-// Package main provides a complete example of using servicekit to run
-// both HTTP and gRPC servers with authentication, observability, and
-// graceful shutdown.
-//
-// Run with:
-//
-//	SERVICEKIT_AUTH_TOKEN=secret go run ./example/
-//
-// Then try:
-//
-//	curl http://localhost:8080/healthz
-//	curl http://localhost:8080/readyz
-//	curl http://localhost:8080/metrics
-//	curl -H "Authorization: Bearer secret" http://localhost:8080/api/hello
 package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
-	"github.com/aalindkale/servicekit/auth"
-	"github.com/aalindkale/servicekit/config"
-	"github.com/aalindkale/servicekit/grpcserver"
-	"github.com/aalindkale/servicekit/httpclient"
-	"github.com/aalindkale/servicekit/httpserver"
-	"github.com/aalindkale/servicekit/observability"
-	profilev1 "github.com/aalindkale/servicekit/proto/profile/v1"
+	"github.com/Zura16/Reusable-Go-Services/auth"
+	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/grpcserver"
+	"github.com/Zura16/Reusable-Go-Services/httpclient"
+	"github.com/Zura16/Reusable-Go-Services/httpserver"
+	"github.com/Zura16/Reusable-Go-Services/observability"
+	profilev1 "github.com/Zura16/Reusable-Go-Services/proto/profile/v1"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "service exit error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
 func run() error {
-	// ── 1. Load and validate configuration ──────────────────────────────
+	// 1. Load Configuration
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// ── 2. Initialize observability ─────────────────────────────────────
+	// 2. Initialize Structured Logger
 	logger, err := observability.NewLogger(cfg.LogLevel)
 	if err != nil {
-		return fmt.Errorf("creating logger: %w", err)
+		return fmt.Errorf("initializing logger: %w", err)
 	}
 	defer func() { _ = logger.Sync() }()
 
-	logger.Info("configuration loaded", zap.Stringer("config", cfg))
+	logger.Info("starting servicekit example service",
+		zap.Int("http_port", cfg.Port),
+		zap.Int("grpc_port", cfg.GRPCPort),
+		zap.Int("metrics_port", cfg.MetricsPort),
+	)
 
-	// Initialize tracing
+	// 3. Initialize OpenTelemetry Tracing with W3C propagation
 	tp, err := observability.InitTracer("servicekit-example")
 	if err != nil {
 		return fmt.Errorf("initializing tracer: %w", err)
 	}
 	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := observability.ShutdownTracer(ctx, tp); err != nil {
-			logger.Error("shutting down tracer", zap.Error(err))
-		}
+		_ = observability.ShutdownTracer(shutdownCtx, tp)
 	}()
 
-	// Initialize metrics with a custom registry to avoid conflicts
+	// 4. Initialize Prometheus Metrics with custom registry
 	reg := prometheus.NewRegistry()
 	metrics := observability.NewMetrics(reg)
 
-	// ── 3. Set up authentication ────────────────────────────────────────
+	// 5. Initialize Authentication Validator
 	var validator auth.TokenValidator
 	if cfg.AuthToken != "" {
 		validator = auth.NewStaticValidator(cfg.AuthToken, auth.Identity{
-			Subject: "api-user",
-			Roles:   []string{"user"},
+			Subject: "example-admin",
+			Roles:   []string{"admin", "user"},
 		})
-		logger.Info("authentication enabled with static token validator")
-	} else {
-		// In dev mode without a token, use a mock that always succeeds
-		validator = &auth.MockValidator{
-			Identity: auth.Identity{Subject: "dev-user", Roles: []string{"admin", "user"}},
-		}
-		logger.Warn("no auth token configured, using mock validator (dev mode)")
 	}
 
-	// ── 4. Create HTTP client (demonstrates the httpclient package) ─────
-	client := httpclient.New(
-		httpclient.WithTimeout(10*time.Second),
-		httpclient.WithLogger(logger.Named("httpclient")),
-	)
+	// Dynamic readiness state
+	var isReady int32 = 1
 
-	// ── 5. Start HTTP server ────────────────────────────────────────────
-	ready := true
-	httpSrv, err := httpserver.New(cfg, logger.Named("http"),
+	// 6. Initialize HTTP Server
+	httpSrv, err := httpserver.New(cfg, logger,
 		httpserver.WithMetrics(metrics),
-		httpserver.WithReadyCheck(func() bool { return ready }),
-		httpserver.WithMaxBodySize(5<<20), // 5MB
+		httpserver.WithReadyCheck(func() bool {
+			return atomic.LoadInt32(&isReady) == 1
+		}),
 	)
 	if err != nil {
 		return fmt.Errorf("creating http server: %w", err)
 	}
 
-	// Register application routes
-	httpSrv.Handle("GET /api/hello", auth.HTTPMiddleware(validator)(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			identity, ok := auth.IdentityFromContext(r.Context())
-			if !ok {
-				http.Error(w, "no identity in context", http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"message": "Hello from ServiceKit!",
-				"user":    identity.Subject,
-				"roles":   identity.Roles,
-			})
-		}),
-	))
-
-	// An example route that uses the HTTP client
-	httpSrv.HandleFunc("GET /api/client-demo", func(w http.ResponseWriter, r *http.Request) {
-		// Demonstrate using the HTTP client with context propagation
-		resp, err := client.Get(r.Context(), "http://localhost:"+fmt.Sprint(cfg.Port)+"/healthz")
-		if err != nil {
-			http.Error(w, fmt.Sprintf("client request failed: %v", err), http.StatusBadGateway)
+	// Add protected sample HTTP route
+	httpSrv.HandleFunc("GET /api/v1/protected", func(w http.ResponseWriter, r *http.Request) {
+		id, ok := auth.IdentityFromContext(r.Context())
+		if !ok {
+			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		defer func() { _ = resp.Body.Close() }()
-
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"message":       "HTTP client round-trip successful",
-			"upstream_code": resp.StatusCode,
-		})
+		_, _ = fmt.Fprintf(w, "Hello %s! Roles: %v\n", id.Subject, id.Roles)
 	})
 
-	// ── 6. Start gRPC server ────────────────────────────────────────────
-	grpcSrv, err := grpcserver.New(cfg, logger.Named("grpc"), validator, metrics,
-		grpcserver.WithReflection(),
-	)
+	// Wrap route with auth middleware if validator configured
+	if validator != nil {
+		httpSrv.Handle("GET /api/v1/admin", auth.HTTPMiddleware(validator)(
+			auth.RequireRole("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Welcome Admin!"))
+			})),
+		))
+	}
+
+	// 7. Initialize gRPC Server
+	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics, grpcserver.WithReflection())
 	if err != nil {
 		return fmt.Errorf("creating grpc server: %w", err)
 	}
+	profilev1.RegisterProfileServiceServer(grpcSrv.Server(), grpcserver.NewProfileServer())
 
-	// Register the example ProfileService
-	profileServer := grpcserver.NewProfileServer()
-	profilev1.RegisterProfileServiceServer(grpcSrv.Server(), profileServer)
-
-	// ── 7. Start servers in goroutines ──────────────────────────────────
-	errCh := make(chan error, 2)
-
-	go func() {
-		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- fmt.Errorf("http server: %w", err)
-		}
-	}()
-
-	go func() {
-		if err := grpcSrv.Serve(); err != nil {
-			errCh <- fmt.Errorf("grpc server: %w", err)
-		}
-	}()
-
-	logger.Info("servicekit example started",
-		zap.Int("http_port", cfg.Port),
-		zap.Int("grpc_port", cfg.GRPCPort),
+	// 8. Initialize HTTP Client
+	client := httpclient.New(
+		httpclient.WithTimeout(5*time.Second),
+		httpclient.WithLogger(logger),
 	)
+	defer client.CloseIdleConnections()
 
-	// ── 8. Wait for shutdown signal ─────────────────────────────────────
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	// 9. Coordinate Concurrency and Bounded Graceful Shutdown
+	rootCtx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignal()
 
-	select {
-	case sig := <-quit:
-		logger.Info("received shutdown signal", zap.String("signal", sig.String()))
-	case err := <-errCh:
-		logger.Error("server error", zap.Error(err))
-		return err
-	}
+	g, gCtx := errgroup.WithContext(rootCtx)
 
-	// ── 9. Graceful shutdown ────────────────────────────────────────────
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-	defer cancel()
+	// Start HTTP Server
+	g.Go(func() error {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			return fmt.Errorf("http server error: %w", err)
+		}
+		return nil
+	})
 
-	logger.Info("initiating graceful shutdown", zap.Duration("timeout", cfg.ShutdownTimeout))
+	// Start gRPC Server
+	g.Go(func() error {
+		if err := grpcSrv.Serve(); err != nil {
+			return fmt.Errorf("grpc server error: %w", err)
+		}
+		return nil
+	})
 
-	// Stop accepting new connections
-	grpcSrv.GracefulStop()
+	// Wait for termination signal or server error
+	g.Go(func() error {
+		<-gCtx.Done()
+		logger.Info("shutdown signal received, initiating coordinated shutdown")
 
-	if err := httpSrv.Shutdown(ctx); err != nil {
-		return fmt.Errorf("http server shutdown: %w", err)
-	}
+		// Mark readiness false immediately so load balancers stop sending traffic
+		atomic.StoreInt32(&isReady, 0)
 
-	logger.Info("shutdown complete")
-	return nil
+		shutdownTimeout := cfg.ShutdownTimeout
+		if shutdownTimeout <= 0 {
+			shutdownTimeout = 15 * time.Second
+		}
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		var shutdownGroup errgroup.Group
+
+		// Shutdown HTTP Server
+		shutdownGroup.Go(func() error {
+			return httpSrv.Shutdown(shutdownCtx)
+		})
+
+		// Gracefully Stop gRPC Server with timed fallback to forced Stop()
+		shutdownGroup.Go(func() error {
+			stopped := make(chan struct{})
+			go func() {
+				grpcSrv.GracefulStop()
+				close(stopped)
+			}()
+
+			select {
+			case <-stopped:
+				logger.Info("gRPC server stopped gracefully")
+			case <-shutdownCtx.Done():
+				logger.Warn("gRPC graceful shutdown timed out, forcing stop")
+				grpcSrv.Stop()
+			}
+			return nil
+		})
+
+		return shutdownGroup.Wait()
+	})
+
+	return g.Wait()
 }

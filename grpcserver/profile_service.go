@@ -5,7 +5,8 @@ import (
 	"context"
 	"sync"
 
-	profilev1 "github.com/aalindkale/servicekit/proto/profile/v1"
+	profilev1 "github.com/Zura16/Reusable-Go-Services/proto/profile/v1"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

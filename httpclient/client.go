@@ -5,10 +5,12 @@ package httpclient
 
 import (
 	"context"
-	"io"
+	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
+
 
 	"go.uber.org/zap"
 )
@@ -62,17 +64,19 @@ func WithTimeout(d time.Duration) Option {
 	}
 }
 
-// WithTransport sets the underlying HTTP transport.
-func WithTransport(t *http.Transport) Option {
+// WithTransport sets the underlying HTTP RoundTripper transport.
+func WithTransport(rt http.RoundTripper) Option {
 	return func(c *Client) {
-		c.httpClient.Transport = t
+		c.httpClient.Transport = rt
 	}
 }
 
 // WithLogger sets the logger for the HTTP client.
 func WithLogger(l *zap.Logger) Option {
 	return func(c *Client) {
-		c.logger = l
+		if l != nil {
+			c.logger = l
+		}
 	}
 }
 
@@ -83,25 +87,14 @@ func WithRetrier(r *Retrier) Option {
 	}
 }
 
-// Do executes an HTTP request with retries.
-func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
-	req = req.WithContext(ctx)
-	if c.retrier == nil {
-		return c.httpClient.Do(req)
+// CloseIdleConnections closes any idle connections in the underlying transport.
+func (c *Client) CloseIdleConnections() {
+	if tr, ok := c.httpClient.Transport.(interface{ CloseIdleConnections() }); ok {
+		tr.CloseIdleConnections()
 	}
-
-	return c.retrier.Do(ctx, func() (*http.Response, error) {
-		if req.GetBody != nil {
-			rc, err := req.GetBody()
-			if err == nil {
-				req.Body = rc
-			}
-		}
-		return c.httpClient.Do(req)
-	}, req.Method)
 }
 
-// Get is a convenience method for a GET request.
+// Get executes a GET request using Do.
 func (c *Client) Get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -110,12 +103,66 @@ func (c *Client) Get(ctx context.Context, url string) (*http.Response, error) {
 	return c.Do(ctx, req)
 }
 
-// Post is a convenience method for a POST request.
-func (c *Client) Post(ctx context.Context, url, contentType string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
-	if err != nil {
-		return nil, err
+// Do executes an HTTP request with body-replay safety and retries.
+func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
+	if req == nil {
+		return nil, errors.New("httpclient: request is nil")
 	}
-	req.Header.Set("Content-Type", contentType)
-	return c.Do(ctx, req)
+
+	req = req.WithContext(ctx)
+	if c.retrier == nil {
+		return c.httpClient.Do(req)
+	}
+
+	var attemptCount int
+	resp, err := c.retrier.Do(ctx, func() (*http.Response, error) {
+		attemptCount++
+		clonedReq, cloneErr := cloneForAttempt(req)
+		if cloneErr != nil {
+			c.logger.Error("failed to clone request for retry attempt",
+				zap.Int("attempt", attemptCount),
+				zap.Error(cloneErr),
+			)
+			return nil, cloneErr
+		}
+
+		res, httpErr := c.httpClient.Do(clonedReq)
+		if httpErr != nil {
+			c.logger.Debug("HTTP request attempt failed with error",
+				zap.Int("attempt", attemptCount),
+				zap.String("method", req.Method),
+				zap.String("url", req.URL.String()),
+				zap.Error(httpErr),
+			)
+		} else if res != nil && res.StatusCode >= 400 {
+			c.logger.Debug("HTTP request attempt returned error status",
+				zap.Int("attempt", attemptCount),
+				zap.String("method", req.Method),
+				zap.String("url", req.URL.String()),
+				zap.Int("status", res.StatusCode),
+			)
+		}
+		return res, httpErr
+	}, req.Method)
+
+	return resp, err
+}
+
+func cloneForAttempt(req *http.Request) (*http.Request, error) {
+	cloned := req.Clone(req.Context())
+	if req.Body == nil || req.Body == http.NoBody {
+		return cloned, nil
+	}
+
+	if req.GetBody == nil {
+		return nil, errors.New("request body is not replayable (GetBody is nil)")
+	}
+
+	body, err := req.GetBody()
+	if err != nil {
+		return nil, fmt.Errorf("recreating request body: %w", err)
+	}
+
+	cloned.Body = body
+	return cloned, nil
 }

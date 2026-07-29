@@ -26,7 +26,8 @@ ServiceKit provides typed configuration, HTTP and gRPC server setup, authenticat
 ### Install
 
 ```bash
-go get github.com/aalindkale/servicekit@latest
+go get github.com/Zura16/Reusable-Go-Services@latest
+
 ```
 
 ### Prerequisites
@@ -65,9 +66,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aalindkale/servicekit/config"
-	"github.com/aalindkale/servicekit/httpserver"
-	"github.com/aalindkale/servicekit/observability"
+	"github.com/Zura16/Reusable-Go-Services/config"
+	"github.com/Zura16/Reusable-Go-Services/httpserver"
+	"github.com/Zura16/Reusable-Go-Services/observability"
+
 	"go.uber.org/zap"
 )
 

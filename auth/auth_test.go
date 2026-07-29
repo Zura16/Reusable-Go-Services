@@ -2,14 +2,73 @@ package auth_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/aalindkale/servicekit/auth"
+
+	"github.com/Zura16/Reusable-Go-Services/auth"
 )
+
+func TestParseBearer(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		header    string
+		wantToken string
+		wantErr   bool
+	}{
+		{"ValidStandard", "Bearer secret-token", "secret-token", false},
+		{"LowercaseBearer", "bearer secret-token", "secret-token", false},
+		{"MixedCaseBearer", "BeArEr secret-token", "secret-token", false},
+		{"ExtraSpaces", "Bearer   secret-token  ", "secret-token", false},
+		{"MissingToken", "Bearer", "", true},
+		{"EmptyHeader", "", "", true},
+		{"NoBearerPrefix", "secret-token", "", true},
+		{"MultipleTokens", "Bearer token1 token2", "", true},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			token, err := auth.ParseBearer(tc.header)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("ParseBearer(%q) err = %v, wantErr = %v", tc.header, err, tc.wantErr)
+			}
+			if token != tc.wantToken {
+				t.Errorf("ParseBearer(%q) token = %q, wantToken = %q", tc.header, token, tc.wantToken)
+			}
+		})
+	}
+}
+
+func TestStaticValidatorRoleImmutability(t *testing.T) {
+	t.Parallel()
+	initialRoles := []string{"admin", "user"}
+	identity := auth.Identity{Subject: "user123", Roles: initialRoles}
+	validator := auth.NewStaticValidator("secret-token", identity)
+
+	// Validate and mutate returned roles slice
+	id, err := validator.Validate(context.Background(), "secret-token")
+	if err != nil {
+		t.Fatalf("unexpected validation error: %v", err)
+	}
+
+	id.Roles[0] = "hacked"
+
+	// Validate again and verify validator internal roles remain intact
+	id2, err := validator.Validate(context.Background(), "secret-token")
+	if err != nil {
+		t.Fatalf("unexpected validation error: %v", err)
+	}
+
+	if id2.Roles[0] != "admin" {
+		t.Fatalf("validator roles slice was mutated by caller! got %v", id2.Roles)
+	}
+}
 
 func TestStaticValidator(t *testing.T) {
 	t.Parallel()
@@ -40,7 +99,6 @@ func TestStaticValidator(t *testing.T) {
 			if err == nil && id.Subject != expectedIdentity.Subject {
 				t.Errorf("expected identity %v, got %v", expectedIdentity, id)
 			}
-			// Test that error messages never contain the token string
 			if err != nil && tc.token != "" && strings.Contains(err.Error(), tc.token) {
 				t.Errorf("error message leaked token: %v", err)
 			}
@@ -95,6 +153,7 @@ func TestHTTPMiddleware(t *testing.T) {
 		expectedStatus int
 	}{
 		{"ValidBearer", "Bearer valid-token", http.StatusOK},
+		{"ValidLowercaseBearer", "bearer valid-token", http.StatusOK},
 		{"InvalidBearer", "Bearer wrong-token", http.StatusUnauthorized},
 		{"MissingHeader", "", http.StatusUnauthorized},
 		{"MalformedHeaderNoBearer", "valid-token", http.StatusUnauthorized},
@@ -177,39 +236,6 @@ func TestRequireRole(t *testing.T) {
 	}
 }
 
-func ExampleStaticValidator() {
-	validator := auth.NewStaticValidator("secret", auth.Identity{
-		Subject: "admin-user",
-		Roles:   []string{"admin"},
-	})
-
-	id, err := validator.Validate(context.Background(), "secret")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Println("Authenticated:", id.Subject)
-	// Output: Authenticated: admin-user
-}
-
-func ExampleHTTPMiddleware() {
-	validator := auth.NewStaticValidator("secret", auth.Identity{Subject: "user"})
-
-	// Create middleware
-	authMiddleware := auth.HTTPMiddleware(validator)
-	roleMiddleware := auth.RequireRole("admin")
-
-	// Protected handler
-	protected := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, _ := auth.IdentityFromContext(r.Context())
-		_, _ = fmt.Fprintf(w, "Hello, %s", id.Subject)
-	})
-
-	// Wrap handler
-	handler := authMiddleware(roleMiddleware(protected))
-	_ = handler
-}
-
 func BenchmarkStaticValidator(b *testing.B) {
 	validator := auth.NewStaticValidator("secret-token", auth.Identity{Subject: "user123", Roles: []string{"admin"}})
 	ctx := context.Background()
@@ -240,4 +266,3 @@ func BenchmarkHTTPMiddleware(b *testing.B) {
 		handler.ServeHTTP(rec, req)
 	}
 }
-

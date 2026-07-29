@@ -10,33 +10,45 @@ import (
 
 // Metrics contains the standard Prometheus metrics for HTTP and gRPC servers.
 type Metrics struct {
+	registerer prometheus.Registerer
+	gatherer   prometheus.Gatherer
+
 	// HTTPRequestsTotal counts the total number of HTTP requests.
 	HTTPRequestsTotal *prometheus.CounterVec
-	
+
 	// HTTPRequestDuration tracks the duration of HTTP requests in seconds.
 	HTTPRequestDuration *prometheus.HistogramVec
-	
+
 	// GRPCRequestsTotal counts the total number of gRPC requests.
 	GRPCRequestsTotal *prometheus.CounterVec
-	
+
 	// GRPCRequestDuration tracks the duration of gRPC requests in seconds.
 	GRPCRequestDuration *prometheus.HistogramVec
 }
 
 // NewMetrics creates and registers all standard collectors for the service.
-// If reg is nil, it uses prometheus.DefaultRegisterer.
+// If reg is nil, it uses prometheus.DefaultRegisterer and prometheus.DefaultGatherer.
 func NewMetrics(reg prometheus.Registerer) *Metrics {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
 	}
 
+	var gatherer prometheus.Gatherer
+	if g, ok := reg.(prometheus.Gatherer); ok {
+		gatherer = g
+	} else {
+		gatherer = prometheus.DefaultGatherer
+	}
+
 	m := &Metrics{
+		registerer: reg,
+		gatherer:   gatherer,
 		HTTPRequestsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "http_requests_total",
 				Help: "Total number of HTTP requests",
 			},
-			[]string{"method", "path", "status"},
+			[]string{"method", "route", "status", "status_class"},
 		),
 		HTTPRequestDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -44,7 +56,7 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 				Help:    "Duration of HTTP requests in seconds",
 				Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 			},
-			[]string{"method", "path"},
+			[]string{"method", "route"},
 		),
 		GRPCRequestsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -70,8 +82,37 @@ func NewMetrics(reg prometheus.Registerer) *Metrics {
 	return m
 }
 
-// Handler returns a promhttp.Handler for the /metrics endpoint.
-// It uses the default Gatherer.
-func Handler() http.Handler {
-	return promhttp.Handler()
+// Gatherer returns the prometheus.Gatherer associated with these metrics.
+func (m *Metrics) Gatherer() prometheus.Gatherer {
+	if m == nil || m.gatherer == nil {
+		return prometheus.DefaultGatherer
+	}
+	return m.gatherer
+}
+
+// Handler returns a promhttp.Handler for the /metrics endpoint using the given Gatherer.
+// If g is nil, it defaults to prometheus.DefaultGatherer.
+func Handler(g prometheus.Gatherer) http.Handler {
+	if g == nil {
+		g = prometheus.DefaultGatherer
+	}
+	return promhttp.HandlerFor(g, promhttp.HandlerOpts{})
+}
+
+// StatusClass returns the HTTP status class string (e.g. "2xx", "4xx", "5xx") for a given status code.
+func StatusClass(code int) string {
+	switch {
+	case code >= 100 && code < 200:
+		return "1xx"
+	case code >= 200 && code < 300:
+		return "2xx"
+	case code >= 300 && code < 400:
+		return "3xx"
+	case code >= 400 && code < 500:
+		return "4xx"
+	case code >= 500:
+		return "5xx"
+	default:
+		return "unknown"
+	}
 }
