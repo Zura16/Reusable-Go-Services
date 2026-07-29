@@ -103,7 +103,7 @@ Built-in features:
 - Structured JSON logging with sanitized request IDs
 - Panic recovery with JSON error logging and Prometheus counter increments
 - Request size limits (`http.MaxBytesReader`)
-- Graceful shutdown coordination via context deadlines
+- Graceful shutdown coordination via context deadlines in application signal handlers
 
 ---
 

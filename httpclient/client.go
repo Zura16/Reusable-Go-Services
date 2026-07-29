@@ -102,8 +102,8 @@ func (c *Client) Get(ctx context.Context, url string) (*http.Response, error) {
 	return c.Do(ctx, req)
 }
 
-// Do executes an HTTP request with body-replay safety, URL query parameter redaction in logs, and automatic retries.
-// For requests with bodies, req.GetBody is used to recreate the body across retries.
+// Do executes an HTTP request.
+// If retries are configured and the body is non-replayable (GetBody == nil), the initial request is performed with the original body, but retries are disabled.
 func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if req == nil {
 		return nil, errors.New("httpclient: request is nil")
@@ -114,19 +114,20 @@ func (c *Client) Do(ctx context.Context, req *http.Request) (*http.Response, err
 		return c.httpClient.Do(req)
 	}
 
-	// Close original request body after completion if it wasn't consumed by http.Client.Do directly
-	defer func() {
-		if req.Body != nil && req.Body != http.NoBody {
-			_ = req.Body.Close()
-		}
-	}()
+	// Copy retrier config so we can disable retries for non-replayable bodies without mutating shared state
+	retrierConfig := *c.retrier
+
+	// Policy: If a body is provided but GetBody is nil, perform initial request with original body, but disable retries.
+	if req.Body != nil && req.Body != http.NoBody && req.GetBody == nil {
+		retrierConfig.MaxRetries = 0
+	}
 
 	var attemptCount int
-	resp, err := c.retrier.Do(ctx, func() (*http.Response, error) {
+	resp, err := retrierConfig.Do(ctx, func() (*http.Response, error) {
 		attemptCount++
 		currentReq, cloneErr := prepareRequestForAttempt(req, attemptCount)
 		if cloneErr != nil {
-			c.logger.Error("failed to prepare request body for attempt",
+			c.logger.Error("failed to prepare request for attempt",
 				zap.Int("attempt", attemptCount),
 				zap.Error(cloneErr),
 			)
@@ -162,24 +163,14 @@ func prepareRequestForAttempt(req *http.Request, attempt int) (*http.Request, er
 		return req.Clone(req.Context()), nil
 	}
 
-	// On the first attempt, if GetBody is provided, clone with a fresh reader.
-	// If GetBody is nil on attempt 1, use original body for the initial attempt.
+	// Attempt 1: use original body directly
 	if attempt == 1 {
-		if req.GetBody != nil {
-			cloned := req.Clone(req.Context())
-			body, err := req.GetBody()
-			if err != nil {
-				return nil, fmt.Errorf("creating body for initial attempt: %w", err)
-			}
-			cloned.Body = body
-			return cloned, nil
-		}
 		return req, nil
 	}
 
-	// On subsequent retry attempts (attempt > 1), GetBody MUST be present to replay the body safely.
+	// Attempt > 1: recreate body via GetBody
 	if req.GetBody == nil {
-		return nil, errors.New("request body is not replayable for retry (GetBody is nil)")
+		return nil, errors.New("request body is not replayable for retry attempt (GetBody is nil)")
 	}
 
 	cloned := req.Clone(req.Context())

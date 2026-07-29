@@ -68,16 +68,11 @@ func run() error {
 		return fmt.Errorf("initializing metrics: %w", err)
 	}
 
-	// 5. Initialize Authentication Validator (defaults to dev token if environment variable is empty)
+	// 5. Initialize Authentication Validator
 	var validator auth.TokenValidator
 	if cfg.AuthToken != "" {
 		validator = auth.NewStaticValidator(cfg.AuthToken, auth.Identity{
 			Subject: "example-admin",
-			Roles:   []string{"admin", "user"},
-		})
-	} else {
-		validator = auth.NewStaticValidator("dev-token", auth.Identity{
-			Subject: "dev-user",
 			Roles:   []string{"admin", "user"},
 		})
 	}
@@ -96,29 +91,39 @@ func run() error {
 		return fmt.Errorf("creating http server: %w", err)
 	}
 
-	// Protected HTTP handler wrapped explicitly with auth middleware
+	// Protected HTTP handler
 	protectedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := auth.IdentityFromContext(r.Context())
 		if !ok {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
+
 		_, _ = fmt.Fprintf(w, "Hello %s! Roles: %v\n", id.Subject, id.Roles)
 	})
 
-	httpSrv.Handle("GET /api/v1/protected", auth.HTTPMiddleware(validator)(protectedHandler))
+	if validator != nil {
+		httpSrv.Handle(
+			"GET /api/v1/protected",
+			auth.HTTPMiddleware(validator)(protectedHandler),
+		)
+		httpSrv.Handle(
+			"GET /api/v1/admin",
+			auth.HTTPMiddleware(validator)(auth.RequireRole("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = w.Write([]byte("Welcome Admin!"))
+			}))),
+		)
+	}
 
-	httpSrv.Handle("GET /api/v1/admin", auth.HTTPMiddleware(validator)(
-		auth.RequireRole("admin")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write([]byte("Welcome Admin!"))
-		})),
-	))
+	// 7. Initialize gRPC Server with explicit authentication choice
+	grpcOpts := []grpcserver.Option{grpcserver.WithReflection()}
+	if validator != nil {
+		grpcOpts = append(grpcOpts, grpcserver.WithAuthentication(validator))
+	} else {
+		grpcOpts = append(grpcOpts, grpcserver.WithInsecureDevelopmentMode())
+	}
 
-	// 7. Initialize gRPC Server with explicit authentication mode
-	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics,
-		grpcserver.WithReflection(),
-		grpcserver.WithAuthentication(validator),
-	)
+	grpcSrv, err := grpcserver.New(cfg, logger, validator, metrics, grpcOpts...)
 	if err != nil {
 		return fmt.Errorf("creating grpc server: %w", err)
 	}
@@ -170,7 +175,7 @@ func run() error {
 
 		var shutdownGroup errgroup.Group
 
-		// Shutdown HTTP Server
+		// Shutdown HTTP Server (and internal metrics server if running)
 		shutdownGroup.Go(func() error {
 			return httpSrv.Shutdown(shutdownCtx)
 		})

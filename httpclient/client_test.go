@@ -105,9 +105,16 @@ type nonReplayableBody struct {
 
 func (b nonReplayableBody) Close() error { return nil }
 
-func TestNonReplayableBodyFailsCleanly(t *testing.T) {
+func TestNonReplayableBodyPerformsOneAttempt(t *testing.T) {
 	t.Parallel()
+	var attempts int32
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&attempts, 1)
+		body, _ := io.ReadAll(r.Body)
+		if string(body) != "payload" {
+			t.Errorf("received wrong body: %s", string(body))
+		}
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}))
 	defer server.Close()
@@ -125,11 +132,17 @@ func TestNonReplayableBodyFailsCleanly(t *testing.T) {
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodPut, server.URL, nonReplayableBody{Reader: strings.NewReader("payload")})
 	req.GetBody = nil
 
-	_, err := client.Do(context.Background(), req)
-	if err == nil {
-		t.Fatal("expected error when trying to retry non-replayable body")
+	resp, err := client.Do(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error on attempt 1: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	if atomic.LoadInt32(&attempts) != 1 {
+		t.Fatalf("expected exactly 1 attempt for non-replayable body, got %d", atomic.LoadInt32(&attempts))
 	}
 }
+
 
 func TestRetryAfterParsing(t *testing.T) {
 	t.Parallel()
