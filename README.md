@@ -24,7 +24,7 @@ ServiceKit provides typed configuration, HTTP and gRPC server setup, authenticat
 ### Install
 
 ```bash
-go get github.com/Zura16/Reusable-Go-Services@v0.1.1
+go get github.com/Zura16/Reusable-Go-Services@v0.1.2
 ```
 
 ### Prerequisites
@@ -42,7 +42,7 @@ make generate
 
 ### Configure
 
-Set environment variables (all optional — sensible defaults are provided):
+Configure the service using environment variables. The example requires either `SERVICEKIT_AUTH_TOKEN` or explicit development mode through `SERVICEKIT_ALLOW_INSECURE=true`:
 
 ```bash
 export SERVICEKIT_PORT=8080              # HTTP server port (default: 8080)

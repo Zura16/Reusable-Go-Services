@@ -123,6 +123,17 @@ func TestLoad_ValidationErrors(t *testing.T) {
 			env:     map[string]string{"SERVICEKIT_SHUTDOWN_TIMEOUT": "-5s"},
 			wantErr: "invalid shutdown timeout -5s: must be greater than 0",
 		},
+		{
+			name:    "conflicting grpc and http port",
+			env:     map[string]string{"SERVICEKIT_PORT": "9090", "SERVICEKIT_GRPC_PORT": "9090"},
+			wantErr: "must differ from http port 9090",
+		},
+		{
+			name:    "conflicting grpc and metrics port",
+			env:     map[string]string{"SERVICEKIT_GRPC_PORT": "9091", "SERVICEKIT_METRICS_PORT": "9091"},
+			wantErr: "must differ from dedicated metrics port 9091",
+		},
+
 	}
 
 	for _, tt := range tests {

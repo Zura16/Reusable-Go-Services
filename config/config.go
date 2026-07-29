@@ -110,6 +110,14 @@ func Load() (Config, error) {
 		return c, fmt.Errorf("invalid shutdown timeout %s: must be greater than 0", c.ShutdownTimeout)
 	}
 
+	if c.GRPCPort == c.Port {
+		return c, fmt.Errorf("invalid grpc port %d: must differ from http port %d", c.GRPCPort, c.Port)
+	}
+	if c.MetricsPort > 0 && c.MetricsPort != c.Port && c.GRPCPort == c.MetricsPort {
+		return c, fmt.Errorf("invalid grpc port %d: must differ from dedicated metrics port %d", c.GRPCPort, c.MetricsPort)
+	}
+
+
 	switch c.LogLevel {
 	case "debug", "info", "warn", "error":
 		// valid
