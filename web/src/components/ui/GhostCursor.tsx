@@ -32,10 +32,10 @@ export const GhostCursor: React.FC<GhostCursorProps> = ({
   trailLength = 50,
   inertia = 0.5,
   grainIntensity = 0.05,
-  bloomStrength = 0.1,
+  bloomStrength = 0.25,
   bloomRadius = 1.0,
   bloomThreshold = 0.025,
-  brightness = 1,
+  brightness = 1.2,
   color = '#B497CF',
   mixBlendMode = 'screen',
   edgeIntensity = 0,
@@ -428,15 +428,24 @@ export const GhostCursor: React.FC<GhostCursorProps> = ({
       }
     };
 
-    const onPointerMove = (e: PointerEvent) => {
+    const updatePointerPos = (clientX: number, clientY: number) => {
       const rect = parent.getBoundingClientRect();
-      const x = THREE.MathUtils.clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
-      const y = THREE.MathUtils.clamp(1 - (e.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+      const x = THREE.MathUtils.clamp((clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+      const y = THREE.MathUtils.clamp(1 - (clientY - rect.top) / Math.max(1, rect.height), 0, 1);
       currentMouseRef.current.set(x, y);
       pointerActiveRef.current = true;
       lastMoveTimeRef.current = performance.now();
       ensureLoop();
     };
+
+    const onPointerMove = (e: PointerEvent) => {
+      updatePointerPos(e.clientX, e.clientY);
+    };
+
+    const onWindowPointerMove = (e: PointerEvent) => {
+      updatePointerPos(e.clientX, e.clientY);
+    };
+
     const onPointerEnter = () => {
       pointerActiveRef.current = true;
       ensureLoop();
@@ -450,6 +459,7 @@ export const GhostCursor: React.FC<GhostCursorProps> = ({
     parent.addEventListener('pointermove', onPointerMove, { passive: true });
     parent.addEventListener('pointerenter', onPointerEnter, { passive: true });
     parent.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: true });
 
     ensureLoop();
 
@@ -464,6 +474,7 @@ export const GhostCursor: React.FC<GhostCursorProps> = ({
       parent.removeEventListener('pointermove', onPointerMove);
       parent.removeEventListener('pointerenter', onPointerEnter);
       parent.removeEventListener('pointerleave', onPointerLeave);
+      window.removeEventListener('pointermove', onWindowPointerMove);
       resizeObsRef.current?.disconnect();
 
       scene.clear();

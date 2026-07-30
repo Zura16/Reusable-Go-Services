@@ -121,13 +121,29 @@ export function App() {
         </div>
 
         {/* Architecture & Package Highlights with GhostCursor integration */}
-        <div className="pt-12 border-t border-white/15 space-y-8 relative">
-          <div className="text-center space-y-2">
+        <div className="pt-12 border-t border-white/15 space-y-8 relative rounded-3xl p-6 md:p-8 bg-black/60 border border-white/15 overflow-hidden">
+          {/* Section-wide GhostCursor Effect */}
+          <GhostCursor
+            color="#B497CF"
+            brightness={1.4}
+            edgeIntensity={0}
+            trailLength={60}
+            inertia={0.6}
+            grainIntensity={0.05}
+            bloomStrength={0.3}
+            bloomRadius={1.2}
+            bloomThreshold={0.02}
+            fadeDelayMs={1000}
+            fadeDurationMs={1500}
+            zIndex={5}
+          />
+
+          <div className="text-center space-y-2 relative z-10 pointer-events-none">
             <h3 className="text-2xl font-bold text-white">ServiceKit Core Packages</h3>
             <p className="text-slate-300 text-sm">6 Decoupled Go Packages for Microservice Acceleration</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
             {[
               {
                 title: "config",
@@ -162,23 +178,8 @@ export function App() {
             ].map((pkg) => (
               <div
                 key={pkg.title}
-                className="relative p-6 rounded-3xl glass-card border border-white/15 space-y-3 overflow-hidden group min-h-[160px]"
+                className="relative p-6 rounded-3xl glass-card border border-white/20 space-y-3 overflow-hidden group min-h-[160px] bg-black/75 hover:bg-black/90 transition-all duration-300 shadow-2xl"
               >
-                {/* GhostCursor Effect inside each box */}
-                <GhostCursor
-                  color="#B497CF"
-                  brightness={1.2}
-                  edgeIntensity={0}
-                  trailLength={45}
-                  inertia={0.5}
-                  grainIntensity={0.05}
-                  bloomStrength={0.15}
-                  bloomRadius={1.0}
-                  bloomThreshold={0.025}
-                  fadeDelayMs={800}
-                  fadeDurationMs={1200}
-                  zIndex={5}
-                />
                 <div className="relative z-10 space-y-3 pointer-events-none">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-xl liquid-glass-box text-white">
