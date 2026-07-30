@@ -7,6 +7,7 @@ import { RetrySimulator } from "@/components/playground/RetrySimulator";
 import { MetricsDashboard } from "@/components/playground/MetricsDashboard";
 import { HealthMonitor } from "@/components/playground/HealthMonitor";
 import TiltedCard from "@/components/ui/TiltedCard";
+import GhostCursor from "@/components/ui/GhostCursor";
 import { ShieldCheck, Server, RefreshCw, Activity, Layers, Terminal } from "lucide-react";
 
 export function App() {
@@ -119,8 +120,8 @@ export function App() {
           </div>
         </div>
 
-        {/* Architecture & Package Highlights */}
-        <div className="pt-12 border-t border-white/15 space-y-8">
+        {/* Architecture & Package Highlights with GhostCursor integration */}
+        <div className="pt-12 border-t border-white/15 space-y-8 relative">
           <div className="text-center space-y-2">
             <h3 className="text-2xl font-bold text-white">ServiceKit Core Packages</h3>
             <p className="text-slate-300 text-sm">6 Decoupled Go Packages for Microservice Acceleration</p>
@@ -159,14 +160,34 @@ export function App() {
                 icon: <Server className="w-5 h-5 text-white" />,
               },
             ].map((pkg) => (
-              <div key={pkg.title} className="p-6 rounded-3xl glass-card border border-white/15 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl liquid-glass-box text-white">
-                    {pkg.icon}
+              <div
+                key={pkg.title}
+                className="relative p-6 rounded-3xl glass-card border border-white/15 space-y-3 overflow-hidden group min-h-[160px]"
+              >
+                {/* GhostCursor Effect inside each box */}
+                <GhostCursor
+                  color="#B497CF"
+                  brightness={1.2}
+                  edgeIntensity={0}
+                  trailLength={45}
+                  inertia={0.5}
+                  grainIntensity={0.05}
+                  bloomStrength={0.15}
+                  bloomRadius={1.0}
+                  bloomThreshold={0.025}
+                  fadeDelayMs={800}
+                  fadeDurationMs={1200}
+                  zIndex={5}
+                />
+                <div className="relative z-10 space-y-3 pointer-events-none">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl liquid-glass-box text-white">
+                      {pkg.icon}
+                    </div>
+                    <h4 className="font-mono font-bold text-lg text-white">servicekit/{pkg.title}</h4>
                   </div>
-                  <h4 className="font-mono font-bold text-lg text-white">servicekit/{pkg.title}</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">{pkg.desc}</p>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">{pkg.desc}</p>
               </div>
             ))}
           </div>
