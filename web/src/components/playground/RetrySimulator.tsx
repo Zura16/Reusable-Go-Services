@@ -62,11 +62,11 @@ export const RetrySimulator: React.FC = () => {
   return (
     <BorderGlow
       edgeSensitivity={35}
-      glowColor="140 100 50"
+      glowColor="255 255 255"
       borderRadius={24}
       glowRadius={40}
       glowIntensity={1.5}
-      colors={['#22c55e', '#10b981', '#34d399']}
+      colors={['#ffffff', '#e2e8f0', '#cbd5e1']}
     >
       <div
         style={{
@@ -85,19 +85,19 @@ export const RetrySimulator: React.FC = () => {
           {/* Panel Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-black/70 border border-white/25 text-emerald-400">
-                <RefreshCw className="w-5 h-5 text-emerald-400" />
+              <div className="p-3 rounded-2xl bg-black/70 border border-white/30 text-white">
+                <RefreshCw className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-md">
                   HTTP Client Retry & Jitter Simulator
                 </h3>
-                <p className="text-xs text-emerald-300 font-mono font-semibold mt-0.5 drop-shadow">
+                <p className="text-xs text-white/90 font-mono font-semibold mt-0.5 drop-shadow">
                   Exponential Backoff, Idempotency Guard, and 429 Retry-After Engine
                 </p>
               </div>
             </div>
-            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-white border border-white/50 tracking-wide uppercase drop-shadow">
               Resilience Core
             </span>
           </div>
@@ -114,7 +114,7 @@ export const RetrySimulator: React.FC = () => {
                 max="5"
                 value={maxRetries}
                 onChange={(e) => setMaxRetries(Number(e.target.value))}
-                className="w-full accent-emerald-400 cursor-pointer"
+                className="w-full accent-white cursor-pointer"
               />
             </div>
 
@@ -129,7 +129,7 @@ export const RetrySimulator: React.FC = () => {
                 step="50"
                 value={baseDelayMs}
                 onChange={(e) => setBaseDelayMs(Number(e.target.value))}
-                className="w-full accent-emerald-400 cursor-pointer"
+                className="w-full accent-white cursor-pointer"
               />
             </div>
 
@@ -144,7 +144,7 @@ export const RetrySimulator: React.FC = () => {
                 step="5"
                 value={jitterPercent}
                 onChange={(e) => setJitterPercent(Number(e.target.value))}
-                className="w-full accent-emerald-400 cursor-pointer"
+                className="w-full accent-white cursor-pointer"
               />
             </div>
           </div>
@@ -160,8 +160,8 @@ export const RetrySimulator: React.FC = () => {
                   onClick={() => setHttpMethod("GET")}
                   className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border transition ${
                     httpMethod === "GET"
-                      ? "bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/30"
-                      : "bg-black/70 text-emerald-300 border-white/20 hover:bg-black/90"
+                      ? "bg-white text-black border-white font-extrabold shadow-lg shadow-white/30"
+                      : "bg-black/70 text-white/80 border-white/20 hover:bg-black/90 hover:text-white"
                   }`}
                 >
                   GET (Idempotent)
@@ -171,8 +171,8 @@ export const RetrySimulator: React.FC = () => {
                   onClick={() => setHttpMethod("POST")}
                   className={`flex-1 py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border transition ${
                     httpMethod === "POST"
-                      ? "bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/30"
-                      : "bg-black/70 text-emerald-300 border-white/20 hover:bg-black/90"
+                      ? "bg-white text-black border-white font-extrabold shadow-lg shadow-white/30"
+                      : "bg-black/70 text-white/80 border-white/20 hover:bg-black/90 hover:text-white"
                   }`}
                 >
                   POST (Unsafe)
@@ -191,7 +191,7 @@ export const RetrySimulator: React.FC = () => {
                       type="checkbox"
                       checked={retryUnsafe}
                       onChange={(e) => setRetryUnsafe(e.target.checked)}
-                      className="rounded text-emerald-400 focus:ring-emerald-400"
+                      className="rounded accent-white text-white focus:ring-white"
                     />
                     Enable RetryUnsafe=true (force retry POST)
                   </label>
@@ -201,7 +201,7 @@ export const RetrySimulator: React.FC = () => {
                     type="checkbox"
                     checked={simulate429}
                     onChange={(e) => setSimulate429(e.target.checked)}
-                    className="rounded text-emerald-400 focus:ring-emerald-400"
+                    className="rounded accent-white text-white focus:ring-white"
                   />
                   Simulate 429 Too Many Requests (Retry-After Header)
                 </label>
@@ -223,27 +223,27 @@ export const RetrySimulator: React.FC = () => {
 
           {retryLogs.length > 0 && (
             <div className="space-y-2 font-mono text-xs animate-fadeIn">
-              <p className="text-emerald-300 font-bold">// Execution Timeline:</p>
+              <p className="text-white font-bold">// Execution Timeline:</p>
               {retryLogs.map((log) => (
                 <div
                   key={log.attempt}
                   className="p-3.5 rounded-2xl bg-black/85 border border-white/30 text-white flex items-center justify-between transition-all shadow-2xl"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-black/90 border border-emerald-400/40 flex items-center justify-center font-bold text-[11px] text-emerald-300">
+                    <span className="w-6 h-6 rounded-full bg-black/90 border border-white/40 flex items-center justify-center font-bold text-[11px] text-white">
                       #{log.attempt}
                     </span>
                     <span className="font-bold">{log.status}</span>
                   </div>
                   <div className="flex items-center gap-3 text-white font-semibold">
-                    {log.delayMs > 0 && <span className="text-emerald-300">Backoff Delay: +{log.delayMs}ms</span>}
+                    {log.delayMs > 0 && <span className="text-white/90">Backoff Delay: +{log.delayMs}ms</span>}
                     {log.isRetryable ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-black/90 text-emerald-300 border border-emerald-400/40 font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/90 text-white border border-white/40 font-bold">
                         Retrying...
                       </span>
                     ) : log.status.startsWith("200") ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-black/90 text-emerald-300 border border-emerald-400/40 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-400" /> Resolved
+                      <span className="px-2.5 py-0.5 rounded-full bg-black/90 text-white border border-white/40 font-bold flex items-center gap-1">
+                        <Check className="w-3 h-3 text-white" /> Resolved
                       </span>
                     ) : (
                       <span className="px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1">

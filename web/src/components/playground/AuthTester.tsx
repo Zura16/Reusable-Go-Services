@@ -70,11 +70,11 @@ export const AuthTester: React.FC = () => {
   return (
     <BorderGlow
       edgeSensitivity={35}
-      glowColor="140 100 50"
+      glowColor="255 255 255"
       borderRadius={24}
       glowRadius={40}
       glowIntensity={1.5}
-      colors={['#22c55e', '#10b981', '#34d399']}
+      colors={['#ffffff', '#e2e8f0', '#cbd5e1']}
     >
       <div
         style={{
@@ -93,19 +93,19 @@ export const AuthTester: React.FC = () => {
           {/* Panel Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/20">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-black/70 border border-white/25 text-emerald-400">
-                <Lock className="w-5 h-5 text-emerald-400" />
+              <div className="p-3 rounded-2xl bg-black/70 border border-white/30 text-white">
+                <Lock className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-xl font-extrabold text-white tracking-tight drop-shadow-md">
                   Auth & Authorization Validator
                 </h3>
-                <p className="text-xs text-emerald-300 font-mono font-semibold mt-0.5 drop-shadow">
+                <p className="text-xs text-white/90 font-mono font-semibold mt-0.5 drop-shadow">
                   Test Constant-Time Bearer Token Validation & Role Enforcement
                 </p>
               </div>
             </div>
-            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-emerald-400 border border-emerald-400/50 tracking-wide uppercase drop-shadow">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold rounded-full bg-black/80 text-white border border-white/50 tracking-wide uppercase drop-shadow">
               Crypto Safe
             </span>
           </div>
@@ -117,34 +117,34 @@ export const AuthTester: React.FC = () => {
                 Bearer Token
               </label>
               <div className="relative">
-                <Key className="absolute left-3.5 top-3.5 w-4 h-4 text-emerald-400" />
+                <Key className="absolute left-3.5 top-3.5 w-4 h-4 text-white" />
                 <input
                   type="text"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="e.g. secret-auth-token"
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/80 border border-white/30 text-white text-sm focus:outline-none focus:border-emerald-400 transition-all font-mono font-semibold shadow-inner"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-black/80 border border-white/30 text-white text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all font-mono font-semibold shadow-inner"
                 />
               </div>
               <div className="flex flex-wrap gap-2 mt-3">
                 <button
                   type="button"
                   onClick={() => setToken("secret-auth-token")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/30 text-white font-bold font-mono transition"
                 >
                   Preset: Admin Token
                 </button>
                 <button
                   type="button"
                   onClick={() => setToken("dev-bearer-token")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/30 text-white font-bold font-mono transition"
                 >
                   Preset: User Token
                 </button>
                 <button
                   type="button"
                   onClick={() => setToken("invalid-token-123")}
-                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/20 text-emerald-300 font-bold font-mono transition"
+                  className="text-[11px] px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 border border-white/30 text-white font-bold font-mono transition"
                 >
                   Preset: Invalid Token
                 </button>
@@ -163,8 +163,8 @@ export const AuthTester: React.FC = () => {
                     onClick={() => setRoleRequirement(r)}
                     className={`py-3 px-3 rounded-2xl text-xs font-bold uppercase tracking-wider border transition ${
                       roleRequirement === r
-                        ? "bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-lg shadow-emerald-500/30"
-                        : "bg-black/70 text-emerald-300 border-white/20 hover:bg-black/90"
+                        ? "bg-white text-black border-white font-extrabold shadow-lg shadow-white/30"
+                        : "bg-black/70 text-white/80 border-white/20 hover:bg-black/90 hover:text-white"
                     }`}
                   >
                     {r === "none" ? "None" : r}
@@ -191,7 +191,7 @@ export const AuthTester: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   {lastResult.status === 200 ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle2 className="w-5 h-5 text-white" />
                   ) : (
                     <AlertTriangle className="w-5 h-5 text-amber-400" />
                   )}
@@ -199,15 +199,15 @@ export const AuthTester: React.FC = () => {
                     HTTP {lastResult.status} — {lastResult.statusText}
                   </span>
                 </div>
-                <span className="text-xs font-mono px-3 py-1 rounded-full bg-black/90 text-emerald-300 border border-emerald-400/40 font-bold">
+                <span className="text-xs font-mono px-3 py-1 rounded-full bg-black/90 text-white border border-white/40 font-bold">
                   Log Header: {lastResult.redactedHeader}
                 </span>
               </div>
 
               {lastResult.subject && (
                 <div className="text-xs space-y-1 font-mono mt-2 pt-2 border-t border-white/20 text-white">
-                  <p><span className="text-emerald-400 font-bold">Authenticated Identity:</span> {lastResult.subject}</p>
-                  <p><span className="text-emerald-400 font-bold">Granted Roles:</span> {lastResult.roles?.join(", ")}</p>
+                  <p><span className="text-white font-bold">Authenticated Identity:</span> {lastResult.subject}</p>
+                  <p><span className="text-white font-bold">Granted Roles:</span> {lastResult.roles?.join(", ")}</p>
                 </div>
               )}
 
